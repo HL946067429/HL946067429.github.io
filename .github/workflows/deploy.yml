@@ -30,20 +30,17 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # 如果未启用 lastUpdated，则不需要
-      - uses: pnpm/action-setup@v3 # 使用 pnpm
-        with:
-          version: 7.3.0 # 指定 pnpm 版本
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 16.18.1
-          cache: pnpm # 缓存设置为 pnpm
+          cache: npm # 缓存设置为 npm
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Install dependencies
-        run: pnpm install # 使用 pnpm 安装依赖
+        run: npm install # 使用 npm 安装依赖
       - name: Build with VitePress
-        run: pnpm run build # 使用 pnpm 运行构建
+        run: npm run build # 使用 npm 运行构建
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
