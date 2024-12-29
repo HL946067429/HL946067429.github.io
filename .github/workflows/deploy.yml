@@ -39,18 +39,18 @@ jobs:
           ls -R .vuepress || echo ".vuepress directory not found"
 
       - name: Build VuePress Site
-        run: npx vuepress build .vuepress
+        run: npm run build
 
       - name: Check Build Output
         run: |
           echo "Checking build output..."
           ls -R .vuepress/dist || echo ".vuepress/dist not found"
 
-#      - name: Upload Artifact
-#        if: success()
-#        uses: actions/upload-pages-artifact@v3
-#        with:
-#          path: .vuepress/dist
+      - name: Upload Artifact
+        if: success()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .vuepress/dist
 
   deploy:
     environment:
