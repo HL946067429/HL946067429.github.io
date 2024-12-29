@@ -32,8 +32,14 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
+      - name: Check VuePress files
+        run: ls -R .vuepress || echo ".vuepress directory not found"
+
+      - name: Check Node Modules
+        run: ls -R node_modules || echo "node_modules directory not found"
+
       - name: Build VuePress Site
-        run: npx vuepress build .vuepress # 使用 VuePress 构建命令
+        run: npx vuepress build .vuepress
 
       - name: Check Build Output
         run: ls -R .vuepress/dist || echo "Build output not found"
@@ -41,7 +47,7 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .vuepress/dist # 上传 VuePress 的构建产物
+          path: .vuepress/dist
 
   deploy:
     environment:
