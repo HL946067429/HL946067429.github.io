@@ -1,4 +1,4 @@
-name: Deploy VitePress site to Pages
+name: Deploy VuePress site to Pages
 
 on:
   push:
@@ -18,30 +18,30 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
           cache: npm
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: npm install
 
-      - name: Build with VitePress
-        run: npm run build # 确保 package.json 的脚本正确
+      - name: Build VuePress Site
+        run: npx vuepress build .vuepress # 使用 VuePress 构建命令
 
-      - name: Check build output
-        run: ls -R docs/.vitepress # 调试用，检查构建输出
+      - name: Check Build Output
+        run: ls -R .vuepress/dist || echo "Build output not found"
 
-      - name: Upload artifact
+      - name: Upload Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/.vitepress/dist # 确保路径正确
+          path: .vuepress/dist # 上传 VuePress 的构建产物
 
   deploy:
     environment:
@@ -49,7 +49,6 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     needs: build
     runs-on: ubuntu-latest
-    name: Deploy
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
