@@ -32,19 +32,22 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Check VuePress files
-        run: ls -R .vuepress || echo ".vuepress directory not found"
-
-      - name: Check Node Modules
-        run: ls -R node_modules || echo "node_modules directory not found"
+      - name: Check Project Structure
+        run: |
+          echo "Listing project structure..."
+          ls -R . || echo "Project root not found"
+          ls -R .vuepress || echo ".vuepress directory not found"
 
       - name: Build VuePress Site
         run: npx vuepress build .vuepress
 
       - name: Check Build Output
-        run: ls -R .vuepress/dist || echo "Build output not found"
+        run: |
+          echo "Checking build output..."
+          ls -R .vuepress/dist || echo ".vuepress/dist not found"
 
       - name: Upload Artifact
+        if: success()
         uses: actions/upload-pages-artifact@v3
         with:
           path: .vuepress/dist
