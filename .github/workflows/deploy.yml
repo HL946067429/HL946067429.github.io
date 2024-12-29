@@ -33,13 +33,10 @@ jobs:
         run: npm install
 
       - name: Build with VitePress
-        run: npm run build # 确保 package.json 中的命令正确
+        run: npm run build # 确保 package.json 的脚本正确
 
-      - name: Debug: Check project structure
-        run: ls -R . # 查看项目根目录的文件结构，帮助调试路径问题
-
-      - name: Debug: Check docs/.vitepress
-        run: ls -R docs/.vitepress || echo "docs/.vitepress not found" # 检查 VitePress 配置文件夹是否存在
+      - name: Check build output
+        run: ls -R docs/.vitepress # 调试用，检查构建输出
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
