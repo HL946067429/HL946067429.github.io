@@ -4,13 +4,13 @@ import { viteBundler } from '@vuepress/bundler-vite'
 import { webpackBundler } from '@vuepress/bundler-webpack'
 
 export default defineUserConfig({
-  title: "vuepress-theme-reco",
+  title: "全系列技术体系",
   description: "Just playing around",
   bundler: viteBundler(),
   // bundler: webpackBundler(),
   theme: recoTheme({
     logo: "/logo.png",
-    author: "reco_luan",
+    author: "hl",
     authorAvatar: "/head.png",
     docsRepo: "https://github.com/vuepress-reco/vuepress-theme-reco-next",
     docsBranch: "main",
@@ -30,7 +30,65 @@ export default defineUserConfig({
       ],
     },
     navbar: [
-      { text: "Home", link: "/" },
+      { text: "首页", link: "/" },
+      {
+        text: "java",
+        children: [
+          {
+            text: "Java 面向对象和基础",
+            children: [
+              { text: "Java 面向对象和基础", link: "/docs/theme-reco/theme" },
+              { text: "Java进阶 - 集合框架", link: "/blogs/other/guide" },
+            ],
+          },
+          {
+            text: "Java进阶 - 集合框架",
+            children: [
+              { text: "Java集合框架详解", link: "/docs/theme-reco/theme" }
+            ],
+          },
+          {
+            text: "Java进阶 - 并发框架",
+            children: [
+              { text: "Java 并发知识体系", link: "/docs/theme-reco/theme" },
+              { text: "Java 并发理论基础", link: "/docs/theme-reco/theme" },
+              { text: "Java 并发线程基础", link: "/docs/theme-reco/theme" },
+              { text: "JUC 知识体系与基础", link: "/docs/theme-reco/theme" }
+            ],
+          },
+          {
+            text: "Java进阶 - IO框架",
+            children: [
+              { text: "Java IO/NIO/AIO详解", link: "/docs/theme-reco/theme" }
+            ],
+          },
+          {
+            text: "Java进阶 - 新版本特性",
+            children: [
+              { text: "Java 8特性详解", link: "/docs/theme-reco/theme" },
+              { text: "Java 8以上版本特性体系", link: "/docs/theme-reco/theme" },
+              { text: "Java 8升Java 11特性必读", link: "/docs/theme-reco/theme" },
+              { text: "Java 11升Java 17特性必读", link: "/docs/theme-reco/theme" },
+            ],
+          },
+          {
+            text: "Java进阶 - JVM相关",
+            children: [
+              { text: "Java 类加载机制", link: "/docs/theme-reco/theme" },
+              { text: "Java 字节码和增强技术", link: "/docs/theme-reco/theme" },
+              { text: "JVM 内存结构详解", link: "/docs/theme-reco/theme" },
+              { text: "JVM 垃圾回收机制", link: "/docs/theme-reco/theme" },
+              { text: "Java 调试排错相关", link: "/docs/theme-reco/theme" },
+            ],
+          },
+        ],
+      },
+      { text: "算法", link: "/db" },
+      { text: "数据库", link: "/" },
+      { text: "开发", link: "/" },
+      { text: "Spring", link: "/cicd" },
+      { text: "框架|中间件", link: "/other" },
+      { text: "架构", link: "/other" },
       { text: "Categories", link: "/categories/reco/1.html" },
       { text: "Tags", link: "/tags/tag1/1.html" },
       {
@@ -110,4 +168,5 @@ export default defineUserConfig({
     // },
   }),
   // debug: true,
+
 });
