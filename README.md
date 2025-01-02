@@ -4,12 +4,12 @@ modules:
   - BannerBrand
   - Blog
   - MdContent
-  - Footer
+#  - Footer
 bannerBrand:
   bgImage: '/bg.svg'
   title: 全栈技术体系
 #  description: 你好，世界！
-  tagline: java、python、前端、数据库、运维、大数据等等
+  tagline: Java、Python、前端、数据库、运维、大数据等等
   
   buttons:
     - { text: 面试指南, link: '/docs/guide/introduce' }

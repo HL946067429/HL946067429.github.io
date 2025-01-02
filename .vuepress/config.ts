@@ -1,6 +1,8 @@
 import { defineUserConfig } from "vuepress";
 import recoTheme from "vuepress-theme-reco";
 import { viteBundler } from '@vuepress/bundler-vite'
+import { registerComponentsPlugin } from '@vuepress/plugin-register-components';
+import path from 'path';
 import { webpackBundler } from '@vuepress/bundler-webpack'
 
 export default defineUserConfig({
@@ -18,33 +20,64 @@ export default defineUserConfig({
     lastUpdatedText: "",
     // series 为原 sidebar
     series: {
-      "/docs/theme-reco/": [
+      "/docs/Java/base/": [
         {
-          text: "module one",
-          children: ["home", "theme"],
+          text: "Java 基础",
+          children: ["Java 面向对象","Java 知识点","Java 泛型机制详解","Java 注解机制详解","Java 异常机制详解","Java 反射机制详解","Java SPI机制详解",],
         },
         {
-          text: "module two",
-          children: ["api", "plugin"],
+          text: "Java 集合框架",
+          children: [
+            {
+              text: "Collection - 源码解析",
+              children: [
+                "Collection 类关系图","ArrayList 源码解析","LinkedList源码解析",
+                "Stack & Queue 源码解析","PriorityQueue源码解析"
+              ]
+            },
+            {
+              text: "Map - 源码解析",
+              children: [
+                "HashSet & HashMap 源码解析",
+                "LinkedHashSet&Map源码解析","TreeSet & TreeMap 源码解析","WeakHashMap源码解析"]
+            },
+              ],
+        },
+        {
+          text: "Java 多线程与并发",
+          children: [
+            {
+              text: "Java 并发基础",
+              children: ["Java 并发 - 理论基础","Java 并发 - 线程基础"]
+            },
+            "Java并发 - Java中的锁","synchronized详解","volatile详解",
+            "final详解","JUC 锁","JUC 集合","JUC 线程池","JUC 工具类"],
+        },
+        {
+          text: "Java IO/NIO/AIO",
+          children: ["Java 并发 - 理论基础","Java 并发 - 线程基础",
+            "Java并发 - Java中的锁","synchronized详解","volatile详解",
+            "final详解","JUC 锁","JUC 集合","JUC 线程池","JUC 工具类"],
+        },
+      ],
+      "/docs/db/mysql/": [
+        {
+          text: "SQL - MySQL",
+          children: ["MySQL","MySQL数据类型","MySQL执行流程","MySQL基础架构","MySQL索引","MySQL性能优化","MySQL事务"],
         },
       ],
     },
     navbar: [
       { text: "首页", link: "/" },
       {
-        text: "java",
+        text: "Java",
         children: [
           {
             text: "Java 面向对象和基础",
             children: [
-              { text: "Java 面向对象和基础", link: "/docs/theme-reco/theme" },
-              { text: "Java进阶 - 集合框架", link: "/blogs/other/guide" },
-            ],
-          },
-          {
-            text: "Java进阶 - 集合框架",
-            children: [
-              { text: "Java集合框架详解", link: "/docs/theme-reco/theme" }
+              { text: "Java 面向对象和基础", link: "/docs/Java/base/Java 面向对象和基础" },
+              { text: "Java 基础知识体系", link: "/docs/Java/base/Java 基础知识体系" },
+              { text: "Java 集合框架详解", link: "/docs/Java/base/Java集合框架详解" }
             ],
           },
           {
@@ -83,21 +116,37 @@ export default defineUserConfig({
           },
         ],
       },
-      { text: "算法", link: "/db" },
-      { text: "数据库", link: "/" },
-      { text: "开发", link: "/" },
-      { text: "Spring", link: "/cicd" },
-      { text: "框架|中间件", link: "/other" },
-      { text: "架构", link: "/other" },
+      { text: "算法", link: "/docs/db" },
+      {
+        text: "数据库",
+        children: [
+            {
+              text: "数据库基础和原理",
+              children: [
+                { text: "数据库原理", link: "/docs/db/base/database" },
+                { text: "SQL语言", link: "/docs/db/base/sql" }
+              ]
+            },
+          {
+            text: "SQL数据库",
+            children: [
+              { text: "MySQL", link: "/docs/db/mysql/MySQL" }
+            ]
+          },
+          {
+            text: "NoSQL数据库",
+            children: [
+              { text: "Redis", link: "/docs/db/redis/redis" },
+              { text: "MongoDB", link: "/docs/db/mongodb/mongodb" },
+              { text: "ElasticSearch", link: "/docs/db/elasticsearch/elasticsearch" },
+            ]
+          }
+        ]
+      },
+      { text: "Spring", link: "/Spring" },
+      { text: "中间件", link: "/other" },
       { text: "Categories", link: "/categories/reco/1.html" },
       { text: "Tags", link: "/tags/tag1/1.html" },
-      {
-        text: "Docs",
-        children: [
-          { text: "vuepress-reco", link: "/docs/theme-reco/theme" },
-          { text: "vuepress-theme-reco", link: "/blogs/other/guide" },
-        ],
-      },
     ],
     bulletin: {
       body: [
@@ -153,20 +202,24 @@ export default defineUserConfig({
         },
       ],
     },
-    // commentConfig: {
-    //   type: 'valine',
-    //   // options 与 1.x 的 valineConfig 配置一致
-    //   options: {
-    //     // appId: 'xxx',
-    //     // appKey: 'xxx',
-    //     // placeholder: '填写邮箱可以收到回复提醒哦！',
-    //     // verify: true, // 验证码服务
-    //     // notify: true,
-    //     // recordIP: true,
-    //     // hideComments: true // 隐藏评论
-    //   },
-    // },
+    commentConfig: {
+      type: 'valine',
+      // options 与 1.x 的 valineConfig 配置一致
+      options: {
+        // appId: 'xxx',
+        // appKey: 'xxx',
+        // placeholder: '填写邮箱可以收到回复提醒哦！',
+        // verify: true, // 验证码服务
+        // notify: true,
+        // recordIP: true,
+        // hideComments: true // 隐藏评论
+      },
+    },
   }),
-  // debug: true,
-
+  plugins: [
+    registerComponentsPlugin({
+      componentsDir: path.resolve(__dirname, './components'),
+    }),
+  ],
+  debug: true,
 });
