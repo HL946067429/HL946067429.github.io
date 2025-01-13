@@ -4,6 +4,7 @@ import { viteBundler } from '@vuepress/bundler-vite'
 import { registerComponentsPlugin } from '@vuepress/plugin-register-components';
 import path from 'path';
 import { webpackBundler } from '@vuepress/bundler-webpack'
+import { mediumZoomPlugin } from '@vuepress/plugin-medium-zoom'
 
 export default defineUserConfig({
   title: "全系列技术体系",
@@ -75,18 +76,16 @@ export default defineUserConfig({
           {
             text: "Java 面向对象和基础",
             children: [
-              { text: "Java 面向对象和基础", link: "/docs/Java/base/Java 面向对象和基础" },
-              { text: "Java 基础知识体系", link: "/docs/Java/base/Java 基础知识体系" },
-              { text: "Java 集合框架详解", link: "/docs/Java/base/Java集合框架详解" }
+              { text: "Java 面向对象和基础", link: "/docs/Java/base/Java 面向对象" },
+              { text: "Java 基础知识体系", link: "/docs/Java/base/Java 知识点" },
+              { text: "Java 集合框架详解", link: "/docs/Java/base/Collection 类关系图" }
             ],
           },
           {
             text: "Java进阶 - 并发框架",
             children: [
-              { text: "Java 并发知识体系", link: "/docs/theme-reco/theme" },
-              { text: "Java 并发理论基础", link: "/docs/theme-reco/theme" },
-              { text: "Java 并发线程基础", link: "/docs/theme-reco/theme" },
-              { text: "JUC 知识体系与基础", link: "/docs/theme-reco/theme" }
+              { text: "Java 并发理论基础", link: "/docs/Java/base/Java 并发 - 理论基础" },
+              { text: "Java 并发线程基础", link: "/docs/Java/base/Java 并发 - 线程基础" },
             ],
           },
           {
@@ -144,7 +143,13 @@ export default defineUserConfig({
         ]
       },
       { text: "Spring", link: "/Spring" },
-      { text: "中间件", link: "/other" },
+      {
+        text: "中间件",
+        children: [
+          { text: "Netty", link: "/docs/middleware/Netty" },
+          { text: "缓存中间件", link: "/docs/db/cache/redis" },
+        ]
+      },
       { text: "Categories", link: "/categories/reco/1.html" },
       { text: "Tags", link: "/tags/tag1/1.html" },
     ],
@@ -220,6 +225,9 @@ export default defineUserConfig({
     registerComponentsPlugin({
       componentsDir: path.resolve(__dirname, './components'),
     }),
+    mediumZoomPlugin({
+      selector: 'img.zoom-custom-imgs', // default
+    })
   ],
   debug: true,
 });
