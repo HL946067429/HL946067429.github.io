@@ -2,6 +2,12 @@
 title: Netty
 date: 2025-01-08
 ---
+## 互联网服务端处理网络请求的过程
+<img class="zoom-custom-imgs" :src="$withBase('image/Netty/img11.png')">
+
+* 获取请求，客户端与服务端建立连接发出请求，服务器接收请求(1-3)
+* 构建响应，当服务器收完请求，并在用户空间处理客户端的请求，直到构建响应完成(4)
+* 返回数据，服务器将已构建好的响应通过内核空间的网络I/O发送给客户端(5-7)
 
 ## NIO基础：non-blocking io(非阻塞IO)
 ::: tip
@@ -528,10 +534,269 @@ Files.copy(source, target);
 ```
 
 ### 网络编程
+#### 非阻塞 VS 阻塞
+::: details 阻塞
+* 阻塞模式下，相关方法都会导致线程暂停
+  * ServerSocketChannel.accept()会在没有连接建立时让线程暂停
+  * SocketChannel.read()会在没有数据可读时让线程暂停
+  * 阻塞的表现其实就是线程暂停，暂停期间不会暂用CPU，相当于闲置
+* 单线程下，则色方法之间相互影响，几乎不能正常工作，需要多线程支持
+* 多线程下
+  * 32位JVM一个线程320k，64位JVM一个线程1024k，如果连接数过多，必然导致OOM，并且线程太多，反而会因为频繁切换上下文导致性能降低
+  * 可以采用线程池技术来减少线程数和线程上下文切换，但是治标不治本。
+
+**阻塞简单例子：问题，当连接A建立后，1s后，A发送数据服务器收不到数据，元婴时服务器还在等待另外一个客户端的连接**
+
+服务端
+```java
+// 0. 创建buffer
+ByteBuffer buffer = ByteBuffer.allocate(16);
+// 1. 创建服务器
+ServerSocketChannel ssc = ServerSocketChannel.open();
+// 2. 绑定端口
+ssc.bind(new InetSocketAddress(8080));
+
+// 3. 连接集合
+ArrayList<SocketChannel> channels = new ArrayList<>();
+
+while(true) {
+    log.debug("connecting...");
+    SocketChannel sc = ssc.accept();
+    log.debug("connect... {}", sc);
+    channels.add(sc);
+    for(SocketChannel channel: channels) {
+        // 5. 接收客户端发送的数据
+        log.debug("before read... {}", channel);
+        channel.read(buffer); // 阻塞方法，线程停止运行
+        buffer.flip();
+        debugRead(buffer);
+        buffer.clear();
+        log.debug("after read...{}", channel);
+    }
+}
+```
+
+客户端
+```java
+SocketChannel sc = SocketChannel.open();
+sc.connect(new InetSocketAddress("localhost", 8080));
+sc.write(Charset.defaultCharset().encode("1237\n"));
+sc.write(Charset.defaultCharset().encode("1234567890abc\n"));
+System.out.println("waiting...");
+System.in.read();
+```
+:::
+
+
+::: details 非阻塞
+* 非阻塞模式下，相关方法不会导致线程暂停
+  * accept()方法返回空，继续运行
+  * read()方法返回0，继续运行
+  * 写数据就直接写入，不需要等待网络发送数据。
+* 但非阻塞模式下，即使没有建立连接、没有可读数据，线程任然在不断运行，导致CPU空转
+* 数据复制过程中，线程实际还是阻塞的(AIO改进的地方)
+**非阻塞简单例子：**
+
+服务器端：主要多了`ssc.configureBlocking(false);`
+```java
+// 0. 创建buffer
+ByteBuffer buffer = ByteBuffer.allocate(16);
+
+// 1. 创建服务器
+ServerSocketChannel ssc = ServerSocketChannel.open();
+// 非阻塞模式
+ssc.configureBlocking(false);
+// 2. 绑定端口
+ssc.bind(new InetSocketAddress(8080));
+
+// 3. 连接集合
+ArrayList<SocketChannel> channels = new ArrayList<>();
+while(true) {
+    log.debug("connecting...");
+		// 4. 进行连接
+    SocketChannel sc = ssc.accept();
+    if(sc != null) {
+        sc.configureBlocking(false);
+        channels.add(sc);
+    }
+    log.debug("connect... {}", sc);
+    for(SocketChannel channel: channels) {
+        // 5. 接收客户端发送的数据
+        log.debug("before read... {}", channel);
+        int len = channel.read(buffer); // 阻塞方法，线程停止运行
+        if(len > 0) {
+            buffer.flip();
+            debugRead(buffer);
+            buffer.clear();
+        }
+        log.debug("after read...{}", channel);
+    }
+}
+```
+:::
+
+* 多路复用
+::: tip 多路复用
+单线程可以配置Selector完成对多个Channel可读写事件的监控，这称之为多路复用
+* 多路复用仅针对网络IO，文件IO没有多路复用
+* 如果不用Selector的非阻塞模式，线程大部分事件都是在做无用功，而Selector能够保证
+  * 有连接事件时才去连接
+  * 有可读事件时才去读去
+  * 有可写事件时才去写
+:::
+
+#### Selector
+:::details Selector
+* 好处：
+  * 一个线程配合selector就可以监控多个channel事件，事件发生线程才会去处理。避免非阻塞模式下做的无用功
+  * 让线程能够被充分利用
+  * 节约了线程的数量
+  * 减少了线程上下文切换的次数
+:::
+* 创建
+```java
+Selector selector = Selector.open();
+```
+
+* 绑定(注册)Channel事件
+  * channel必须工作在非阻塞模式下
+  * FileChannel没有非阻塞模式，英雌不能配置selector一起使用
+  * 半丁的事件类型可以有
+    * connect-客户端连接成功时触发
+    * accept-服务器端成功接收连接时触发
+    * read-数据可读入时触发
+    * write-数据可写时触发
+```java
+channel.configureBlocking(false);
+SelectorKey key = channel.register(selector, 绑定事件类型);
+```
+* 监听Channel事件
+可以通过下面三种方法来监听是否有事件发生，方法的返回值代表有多少channel发生了事件，阻塞直到绑定事件发生
+```java
+int count = selector.select();
+```
+select在下面几种情况下不阻塞
+* 有事件发生
+* 调用selector.wakeup()
+* 调用selector.close()
+* selector所在的线程interrupt
+
+#### 处理Accept事件(最简单的Selector使用)
+客户端代码不变，服务器代码如下：
+```java
+import lombok.extern.slf4j.Slf4j;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.SocketException;
+import java.nio.ByteBuffer;
+import java.nio.channels.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import static utils.ByteBufferUtil.debugRead;
+
+@Slf4j
+public class C2_Server {
+    public static void main(String[] args) throws IOException {
+        ServerSocketChannel ssc = ServerSocketChannel.open();
+        ssc.bind(new InetSocketAddress(8080));
+        ssc.configureBlocking(false);
+
+        // 1. 创建Selector
+        Selector selector = Selector.open();
+        // 1. 注册Selector事件
+        SelectionKey sscKey = ssc.register(selector, 0, null);
+        sscKey.interestOps(SelectionKey.OP_ACCEPT);
+
+        List<ServerSocketChannel> channels = new ArrayList<>();
+        while(true) {
+            // 2. select 方法
+            selector.select();
+
+            // 3. 处理事件
+            Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
+            while(iter.hasNext()) {
+		            SelectionKey key = iter.next();
+
+		            // 4. 处理accept事件
+		            ServerSocketChannel channel = (ServerSocketChannel) key.channel();
+		            log.debug("key: {}", key);
+		            SocketChannel sc = channel.accept();
+		            log.debug("sc: {}", sc);
+            }
+        }
+    }
+}
+```
+::: tip 事件发生后能否不处理
+事件发生后，要么处理，要么取消(cancel)，不能什么都不做，否则下次该事件仍会触发，因为nio底层使用的水平触发
+:::
+
 
 #### 处理read事件
-##### 为何要手动移除已处理的事件key
-##### cancel的作用
+客户端代码不变，服务器代码如下，当有可读事件时，自动向下执行。
+```java
+ServerSocketChannel ssc = ServerSocketChannel.open();
+ssc.bind(new InetSocketAddress(8080));
+ssc.configureBlocking(false);
+
+// 1. 注册channel
+Selector selector = Selector.open();
+SelectionKey sscKey = ssc.register(selector, 0, null);
+sscKey.interestOps(SelectionKey.OP_ACCEPT);
+
+List<ServerSocketChannel> channels = new ArrayList<>();
+while(true) {
+    // 2. select 方法
+    selector.select();
+
+    // 3. 处理事件
+    Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
+    while(iter.hasNext()) {
+        SelectionKey key = iter.next();
+        // 必须要移除这个事件
+        iter.remove();
+
+        if(key.isAcceptable()) {
+            // 处理accept事件
+            ServerSocketChannel channel = (ServerSocketChannel) key.channel();
+            log.debug("key: {}", key);
+            SocketChannel sc = channel.accept();
+            sc.configureBlocking(false);
+            SelectionKey scKey = sc.register(selector, 0, null);
+            scKey.interestOps(SelectionKey.OP_READ);
+            log.debug("sc: {}", sc);
+        } else if(key.isReadable()) {
+            // 处理read事件
+            try {
+                ByteBuffer buffer = ByteBuffer.allocate(16);
+                SocketChannel channel = (SocketChannel) key.channel();
+                int len = channel.read(buffer);
+
+                if(len == -1) {
+                    key.cancel();
+                    System.out.println("主动断开连接");
+                } else {
+                    buffer.flip();
+                    debugRead(buffer);
+                }
+            } catch (SocketException e) {
+                e.printStackTrace();
+                key.cancel();
+                System.out.println("强制断开连接");
+            }
+        }
+    }
+}
+```
+::: tip 为何要 iter.remove()
+因为select在事件发生后，就会将相关的key放入selectedKeys集合，但不会在处理完后从selectedKeys集合中移除，需要我们自己编码移除。
+* 第一次触发了 ssckey 上的 accept 事件，没有移除 ssckey
+* 第二次触发了 sckey 上的 read 事件，但这时 selectedKeys 中还有上次的 ssckey ，在处理时因为没有真正的 serverSocket 连上了，就会导致空指针异常
+:::
+
 ##### 处理消息边界
 <img class="zoom-custom-imgs" :src="$withBase('image/Netty/img6.png')">
 * 固定消息长度，数据报大小一样，服务器按预定长度读取，缺点是浪费带宽
@@ -540,6 +805,182 @@ Files.copy(source, target);
   * Http 1.1 是TLV格式
   * Http 2.0 是LTV格式
 
+#### 扩容
+在处理读事件的基础上，如果当前的Buffer大小不能存储完整的一条数据，就进行扩容Buffer。
+```java
+public static void main(String[] args) throws IOException {
+    ServerSocketChannel ssc = ServerSocketChannel.open();
+    ssc.bind(new InetSocketAddress(8080));
+    ssc.configureBlocking(false);
+
+    // 1. 注册channel
+    Selector selector = Selector.open();
+    SelectionKey sscKey = ssc.register(selector, 0, null);
+    sscKey.interestOps(SelectionKey.OP_ACCEPT);
+
+    List<ServerSocketChannel> channels = new ArrayList<>();
+    while(true) {
+        // 2. select 方法
+        selector.select();
+
+        // 3. 处理事件
+        Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
+        while(iter.hasNext()) {
+            SelectionKey key = iter.next();
+            iter.remove();
+
+            if(key.isAcceptable()) {
+                // 处理accept事件
+                ServerSocketChannel channel = (ServerSocketChannel) key.channel();
+                log.debug("key: {}", key);
+                SocketChannel sc = channel.accept();
+                sc.configureBlocking(false);
+
+                ByteBuffer buffer = ByteBuffer.allocate(8);
+                SelectionKey scKey = sc.register(selector, 0, buffer);
+                scKey.interestOps(SelectionKey.OP_READ);
+                log.debug("sc: {}", sc);
+            } else if(key.isReadable()) {
+                // 处理read事件
+                try {
+                    SocketChannel channel = (SocketChannel) key.channel();
+                    ByteBuffer buffer = (ByteBuffer) key.attachment();
+                    int len = channel.read(buffer);
+                    System.out.println(len);
+
+                    if(len == -1) {
+                        key.cancel();
+                        System.out.println("主动断开连接");
+                    } else {
+                        split(buffer);
+                        if(buffer.position() == buffer.limit()) {
+                            ByteBuffer newBuffer = ByteBuffer.allocate(buffer.capacity() * 2);
+                            buffer.flip();
+                            newBuffer.put(buffer);
+                            key.attach(newBuffer);
+                        }
+                    }
+                } catch (SocketException e) {
+                    e.printStackTrace();
+                    key.cancel();
+                    System.out.println("强制断开连接");
+                }
+            }
+        }
+    }
+}
+private static void split(ByteBuffer source) {
+    source.flip();
+    for (int i = 0; i < source.limit(); i++) {
+        // 找到一条完整消息
+        if (source.get(i) == '\n') {
+            int length = i + 1 - source.position();
+            // 把这条完整消息存入新的 ByteBuffer
+            ByteBuffer target = ByteBuffer.allocate(length);
+            // 从 source 读，向 target 写
+            for (int j = 0; j < length; j++) {
+                target.put(source.get());
+            }
+            debugAll(target);
+        }
+    }
+    source.compact(); // 0123456789abcdef  position 16 limit 16
+}
+```
+
+## NIO vs BIO
+* Stream vs Channel
+  * stream仅支持阻塞API，channel同时支持阻塞、非阻塞API，网络你channel可配合selector实现多路复用
+  * 二者均为全双工，即读写可以同时进行
+  * stream不会自动缓冲数据，channel会利用系统提供的发送缓冲区、接收缓冲区。
+### IO 模型
+::: details IO模型的基础认识
+* 阻塞调用与非阻塞调用
+  * 阻塞调用是指调用结果返回之前，当前线程会被挂起，调用线程只有在得到结果之后才会返回。
+  * 非阻塞调用指在不能立刻得到结果之前，该调用不会阻塞当前线程
+  * 两者最大的区别在于被调用放在收到请求到返回结果之前的这段时间内，调用方是否一直等待
+    * 阻塞：调用方一直在等待而且别的事情不能做
+    * 非阻塞：调用方先去忙别的事情
+      
+* 同步调用与异步调用
+  * 同步调用是指被`调用方`得到最终结果之后才返回给调用方
+  * 异步调用是指被`调用方先返回应答`，然后在计算调用结果，计算完成最终结果后在通知并返回给调用方
+    
+* 阻塞、非阻塞和同步、异步的区别
+  * 阻塞、非阻塞讨论的对象是`调用方`
+  * 同步、异步讨论的对象是`被调用方`
+    
+* 同步阻塞、同步非阻塞、同步多路复用、异步IO
+  * 同步：线程自己获取结果（一个线程）
+  * 异步：线程自己不去获取结果，而是由其他线程送结果（至少两个线程）
+
+* 一个输入操作通常包括两个不同的阶段：
+  * 等待数据准备阶段
+  * 从内核想进程复制数据阶段
+
+<img class="zoom-custom-imgs" :src="$withBase('image/Netty/img12.png')">
+
+| 阻塞IO                                                                     | 非阻塞IO                                                                    | 
+|--------------------------------------------------------------------------|--------------------------------------------------------------------------|
+| <img class="zoom-custom-imgs" :src="$withBase('image/Netty/img13.png')"> | <img class="zoom-custom-imgs" :src="$withBase('image/Netty/img14.png')"> |
+| 多路复用                                                                     | 异步IO                                                                     |
+| <img class="zoom-custom-imgs" :src="$withBase('image/Netty/img15.png')"> | <img class="zoom-custom-imgs" :src="$withBase('image/Netty/img16.png')"> |
+:::
+
+### IO模型-阻塞IO(BIO)
+:::tip 阻塞IO
+在阻塞IO模型中，应用程序在从调用recvfrom开始到它返回有数据报准备好这段时间是阻塞的，recvfrom返回成功后，应用程序开始处理数据报。
+**`一个人在钓🐟，当没有🐟上钩时，就坐在岸边一直等待`**
+* 优点：程序简单，在阻塞等待数据期间进程/线程挂起，基本不会占用CPU资源
+* 缺点：每个连接需要独立的进程/线程单独处理，当并发请求量大时为了维护程序，内存、线程切换的开销较大，这种模型在实际生产中很少使用。
+:::
+<img class="zoom-custom-imgs" :src="$withBase('image/Netty/img17.png')">
+
+### IO模型-非阻塞IO(NIO)
+:::tip 非阻塞IO
+在非阻塞IO模型中，应用程序把一个套接字设置为非阻塞的，告诉内核当所请求的IO操作无法完成时，不要将进程睡眠，而是返回一个错误状态，应用成基于IO操作函数不断的轮询数据是否已经准备好，如果没有准备好，继续轮询，直到数据准备好为止。
+**`一边钓🐟一边玩儿手机，隔会儿看看有没有🐟上钩时，有的话迅速拉杆`**
+* 优点：不会阻塞在内核的等待数据过程，每次发起的IO请求都可以立即返回，不用阻塞等待，实时性较好。
+* 缺点：轮询将会不断的询问内核，将占用大量的CPU时间，系统资源利用率较低，一般web服务器都不使用这种IO模型。
+:::
+<img class="zoom-custom-imgs" :src="$withBase('image/Netty/img18.png')">
+
+### IO模型-IO多路复用(NIO)
+:::tip IO多路复用
+在IO多路复用模型中，会用到`select`、`poll`、`epoll(Linux2.6以后支持)`等系统调用，这些函数也会使进程阻塞，但是和阻塞IO不同，这两个函数可以同时阻塞多个IO操作，而且可以同时对多个读操作和写操作的IO进程检测，直到有数据可读、可写时，才真正调用IO函数。
+**`放了一堆鱼竿，在岸上守着这一对鱼竿，没🐟的时候就玩手机`**
+* 优点：可以基于一个阻塞对象，同时在多个描述符上等待就绪，而不是使用多个线程(每个文件描述符一个线程)，这样可以大大节省系统资源。
+* 缺点：当连接数较少时效率相比多线程+阻塞IO模型效率低。可能延迟更大，因为单个连接处理需要2次系统调用，占用时间会更长。
+:::
+<img class="zoom-custom-imgs" :src="$withBase('image/Netty/img19.png')">
+
+#### IO多路复用-select
+:::tip select
+select是Linux中最早的IO复用实现方案：
+```c++
+// 定义类型别名 __fd_mask，本质是 long int
+typedef long int __fd_mask;
+typedef struct {
+  // fds_bits 是一个long类型数组，长度为1024/32 = 32
+  // 共1024个bit位，每个bit位代表一个fd(文件描述符)，0代表未就绪 1代表就绪
+  __fd_mask fds_bits[__FD_SETSIZE / __NFDBITS];
+} fd_set;
+
+// select函数，用于监听多个fd的集合
+int select(
+  int nfds, // 要监听的fd_set的最大值fd + 1
+  fd_set *readfds, // 要监听读事件的fd集合
+  fd_set *writefds, // 要监听写事件的fd集合
+  fd_set *exceptfds, // 要监听异常事件的fd集合
+  struct timeval *timeout // 超时事件，null-永不超时，0-立即返回，>0-固定等待事件
+);
+```
+<img class="zoom-custom-imgs" :src="$withBase('image/Netty/img20.png')">
+* select模式存在的问题：
+  需要将整个fd_set从用户空间拷贝到内核空间，select结束还要再次拷贝回用户空间
+  select无法得知具体是哪一个fd就绪，只能通过遍历fd_set
+  fd_set监听的fd数量有限，不能超过1024
+:::
 
 
 ## Netty
@@ -550,7 +991,7 @@ Files.copy(source, target);
 * ElasticSearch - 搜索引擎
 * gRPC - rpc框架
 * Dubbo - rpc框架
-* Spring 5.x - flux api完全抛弃了tomact，替换为netty
+* Spring 5.x - flux api完全抛弃了tomcat，替换为netty
 * Zookeeper - 分布式协调服务
 
 ### Netty的优势
