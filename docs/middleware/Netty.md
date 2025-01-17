@@ -1167,3 +1167,153 @@ socket.getOutputStream().write(buf);
   * 解决TCP传输问腿，粘包、半包问题
   * epoll空论徐导致CPU 100%
   * 对API 进行增强，简化开发
+
+### Netty概述
+::: tip 概述
+Netty是一个**高性能的Java网络应用程序框架**，可以帮助开发人员快速和容易地创建高性能、可靠的网络应用程序。Netty可以帮助开发人员构建强大的网络服务器和客户端应用程序，以便更容易地交换数据。Netty提供了一系列的功能，例如：支持多种协议，提供强大的编解码器，支持异步和同步请求处理以及一系列的可靠性机制。
+
+* 添加依赖
+```xml
+<dependency>
+  <groupId>io.netty</groupId>
+  <artifactId>netty-all</artifactId>
+  <version>4.1.39.Final</version>
+</dependency>
+```
++ 服务器端
+  - `ServerBootstrap` 创建服务器启动类
+  - `.group(new NioEventLoopGroup())` 创建处理器组，可以理解成`线程池+Selector`
+  - `.channel(NioServerSocketChannel.class)` 基于`NIO的实现`
+  - `.childHandler` 每个`Channel的处理方式`
+  - `ChannelInitializer` `具体的处理器`
+  - `pipeline` `业务工作流`
+```java
+public class HelloServer {
+    public static void main(String[] args) throws InterruptedException {
+        // 1.启动器，负责组装Netty组件，启动服务器
+        new ServerBootstrap()
+                // 2. boss和worker
+                .group(new NioEventLoopGroup())
+                // 3. 选择ServerSocketChannel实现类，NioServerSocketChannel代表nio模型
+                .channel(NioServerSocketChannel.class) // NIO BIO
+                // 4. boss负责处理连接 worker(child)负责处理读写
+                .childHandler(
+                     // 5. channel代表和客户端进行数据读写的通道，Initializer初始化，负责添加别的handler
+                    new ChannelInitializer<NioSocketChannel>() {
+                    // 12. 在连接建立后被调用
+                    @Override
+                    protected void initChannel(NioSocketChannel channel) throws Exception {
+                        // 6. 添加具体的 handler
+                        channel.pipeline().addLast(new StringDecoder());
+                        channel.pipeline().addLast(new ChannelInboundHandlerAdapter() {
+                            @Override
+                            public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                                System.out.println(msg);
+                            }
+                        });
+                    }
+                })
+                // 7. 绑定一个端口，并启动
+                .bind(8080);
+    }
+}
+```
++ 客户端
+  - `ServerBootstrap` 创建客户端启动类
+  - `.group(new NioEventLoopGroup())` 创建处理器组，可以理解成`线程池+Selector`
+  - `.channel(NioServerSocketChannel.class)` 基于`NIO的实现`
+  - `.handler` 创建具体的`业务处理器`
+  - `connect` `进行连接`
+  - `sync` `等待连接建立完毕`
+
+```java
+public class HelloClient {
+
+    public static void main(String[] args) throws InterruptedException {
+        // 7. 启动类
+        new Bootstrap()
+                // 8. 添加 EventLoopGroup
+                .group(new NioEventLoopGroup())
+                // 9. 选择客户端的 (channel的实现)NIO 处理器
+                .channel(NioSocketChannel.class)
+                // 10. 添加处理器
+                .handler(new ChannelInitializer<NioSocketChannel>() {
+                    // 12. 在连接建立后被调用
+                    @Override
+                    protected void initChannel(NioSocketChannel nioSocketChannel) throws Exception {
+                        nioSocketChannel.pipeline().addLast(new StringEncoder());
+                    }
+                })
+                // 11. 连接到服务器
+                .connect(new InetSocketAddress("127.0.0.1",8080))
+                // 13. 阻塞方法，直到 连接建立
+                .sync()
+                // 代表连接对象
+                .channel()
+                // 14. 向服务器发送数据
+                .writeAndFlush("hello word!");
+    }
+}
+```
+* 流程
+
+<img class="zoom-custom-imgs" :src="$withBase('image/Netty/img29.png')">
+
+1. 把`channel`理解为数据的通道
+2. 把msg理解为流动的数据，最开始输入的是`ByteBuf`，但经过`pipeline`的加工，会编程其他类型对象，最后输入又变成`ByteBuf`
+3. 把`handle`理解为数据的处理工序
+   * 工序有多道，合在一起就是`pipeline`，`pipeline`负责发布事件（读、读完成..）传播给每个`handler`，`handler`对自己感兴趣的事件进行处理（重写了相应事件处理方法）
+   * `handler`分为`Inbound`和`Outbound`两类
+4. 把`eventLoop`理解为处理数据的工人
+   * 工人可以管理多个`channel`的io操作，并且一旦工人负责了某个`channel`，就要负责到底（绑定）
+   * 工人既可以执行IO操作，也可以进行任务处理，每位工人有任务队列，队列里可以堆放多个`channel`的待处理任务，任务分为普通任务、定时任务
+   * 工人按照`pipeline`顺序，依次按照`handle`的规划处理数据，可以为每道工序指定不同的工人
+:::
+### Netty组件
+#### EventLoop
+::: tip EventLoop
+* EventLoop（事件循环对象）本质是一个`单线程执行器`（同时维护了一个Selector），里面有run方法处理Channel上源源不断的IO事件
+* EventLoopGroup（事件循环组）是一组EventLoop，Channel一般会调用`EventLoopGroup`的`register`方法来绑定其中一个`EventLoop`，后续这个Channel上的IO事件都会被这个`EventLoop`处理（保证IO事件处理时的线程安全）
+:::
+
+* 演示EventLoopGroup和使用EventLoop提交任务
+```java
+@Slf4j
+public class EventLoopGroupDemo {
+    public static void main(String[] args) {
+        // 内部创建了两个EventLoop，每个EventLoop维护一个线程
+        NioEventLoopGroup group = new NioEventLoopGroup(2);
+        System.out.println(group.next());
+        System.out.println(group.next());
+        System.out.println(group.next());
+        // 一个EventLoop进行普通任务
+        group.next().submit(() -> {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            log.debug("ok");
+        });
+        log.debug("main ok");
+    }
+}
+
+// 输出结果
+io.netty.channel.nio.NioEventLoop@30ee2816
+io.netty.channel.nio.NioEventLoop@31d7b7bf
+io.netty.channel.nio.NioEventLoop@30ee2816
+17:05:00.314 [main] DEBUG org.example.net.netty.EventLoopGroupDemo - main ok
+17:05:01.329 [nioEventLoopGroup-2-1] DEBUG org.example.net.netty.EventLoopGroupDemo - ok
+```
+* EventLoop绑定机制
+> 一旦工人负责了某个channel(一个Channel相当于一个连接)，就要负责到底(绑定)
+
+<img class="zoom-custom-imgs" :src="$withBase('image/Netty/img30.png')">
+
+#### Channel
+#### Future & Promise
+#### Handler & Pipeline
+#### ByteBuf
+
+### 双向通信
