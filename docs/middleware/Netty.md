@@ -790,7 +790,7 @@ while(true) {
     }
 }
 ```
-::: tip 为何要 iter.remove()
+::: warning 为何要iter.remove()
 因为select在事件发生后，就会将相关的key放入selectedKeys集合，但不会在处理完后从selectedKeys集合中移除，需要我们自己编码移除。
 * 第一次触发了 ssckey 上的 accept 事件，没有移除 ssckey
 * 第二次触发了 sckey 上的 read 事件，但这时 selectedKeys 中还有上次的 ssckey ，在处理时因为没有真正的 serverSocket 连上了，就会导致空指针异常
@@ -798,6 +798,7 @@ while(true) {
 
 ##### 处理消息边界
 <img class="zoom-custom-imgs" :src="$withBase('image/Netty/img6.png')">
+
 * 固定消息长度，数据报大小一样，服务器按预定长度读取，缺点是浪费带宽
 * 按分隔符拆分，缺点是效率低
 * TLV格式，即Type类型、Length长度、Value数据，类型和长度已知的情况下，就可以方便获取消息大小，分配合适的buffer，缺点是buffer需要提前分配，如果内容过大，则影响server吞吐量
@@ -1105,12 +1106,49 @@ file.read(buf);
 Socket socket = ...;
 socket.getOutputStream().write(buf);
 ```
-内部工作流程是这样：
+#### 内部工作流程是这样：
+> 用户态与内核态的切换发生了 3 次，这个操作比较重量级。数据拷贝了共 4 次
+
 <img class="zoom-custom-imgs" :src="$withBase('image/Netty/img25.png')">
+
 1. java本身并不具备IO读写能力，因此read方法调用后，要从java程序的用户态切换至内核态，去调用操作系统(kernel)的读能力，将数据读入内核缓冲区，这期间用户线程阻塞，操作系统使用DMA(Direct Memory Access)来实现文件读，期间也不会使用CPU
+> DMA 也可以理解为硬件单元，用来解放 cpu 完成文件 IO
 2. 线程从内核态切换回用户态，将数据从内核缓冲区读入用户缓冲区(即byte[] buf)，这期间CPU会参与拷贝，无法利用DMA。
 3. 调用write方法，这时将数据从用户缓冲区(byte[] buf)写入socket缓冲区，CPU会参与拷贝
 4. 接下来要向网卡写数据，这项能力 java 又不具备，因此又得从用户态切换至内核态，调用操作系统的写能力，使用 DMA 将 socket 缓冲区的数据写入网卡，不会使用 cpu
+> 磁盘和内核缓冲区交互采用DMA，内核态和用户态交互采用CPU
+
+#### NIO优化
+> 通过DirectByteBuf，将堆外内存映射带JVM内存中来直接访问使用，减少了一次数据拷贝，用户态与内核态的切换次数没有减少
+* ByteBuffer.allocate(10) - 堆内存 HeapByteBuffer,使用Java内存
+* ByteBuffer.allocateDirect(10) - 堆外内存 DirectByteBuffer,使用操作系统内存
+* Java可以使用DirectByteBuf将堆外内存映射到JVM内存中来直接访问使用：
+* 这块内存不受JVM垃圾回收的影响，因此内存地址固定，有助于IO读写
+* Java中的DirectByteBuf对象仅维护了此内存的虚拟引用，内存回收分成两步
+  * DirectByteBuf对象被垃圾回收，将虚拟引用加入引用队列
+  * 通过专门线程访问引用队列，根据虚引用释放堆外内存
+
+<img class="zoom-custom-imgs" :src="$withBase('image/Netty/img26.png')">
+
+#### 进一步优化（Linux2.1提供的sendFile）
+> Java中对应着两个channel调用transferTo/transferFrom方法拷贝数据。只发生了一次用户态与内核态的切换，数据拷贝了3次
+* Java调用transferTo方法，要从Java程序的用户态切换至内核态，使用DMA将数据读入内核缓冲区，不会使用CPU
+* 数据从内核缓冲区传输到socket缓冲区，COU会参与拷贝
+* 最后使用DMA将socket缓冲区的数据写入网卡，不会使用cpu
+
+<img class="zoom-custom-imgs" :src="$withBase('image/Netty/img27.png')">
+
+#### 进一步优化（Linux2.4）
+> 整个过程只发生了一次用户态与内核态的切换，数据拷贝了2次，所谓的零拷贝，并不是真正的无拷贝，而是在不会拷贝重复数据到JVM内存中
+> * 更少的用户态与内核态切换次数
+> * 不利用CPU计算，减少CPU缓存伪共享
+> * 零拷贝适合小文件传输
+* Java调用transferTo方法，要从Java程序的用户态切换至内核态，使用DMA将数据读入内核缓冲区，不会使用CPU
+* 只会将一些offset和length信息拷入socket缓冲区，几乎无消耗
+* 使用DMA将socket缓冲区的数据写入网卡，不会使用cpu
+
+<img class="zoom-custom-imgs" :src="$withBase('image/Netty/img28.png')">
+
 
 ## Netty
 * Cassandra - nosql数据库

@@ -21,6 +21,7 @@ export default defineUserConfig({
     docsBranch: "main",
     docsDir: "example",
     lastUpdatedText: "",
+    // home: './components/MyFooter.vue',
     // series 为原 sidebar
     series: {
       "/docs/Java/base/": [
