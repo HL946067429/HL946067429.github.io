@@ -6,6 +6,7 @@ import path from 'path';
 import { webpackBundler } from '@vuepress/bundler-webpack'
 import { mediumZoomPlugin } from '@vuepress/plugin-medium-zoom'
 
+
 export default defineUserConfig({
   title: "全系列技术体系",
   description: "Just playing around",
@@ -14,6 +15,7 @@ export default defineUserConfig({
   theme: recoTheme({
     logo: "/logo.png",
     author: "hl",
+    catalogTitle: "目录",
     authorAvatar: "/head.png",
     docsRepo: "https://github.com/vuepress-reco/vuepress-theme-reco-next",
     docsBranch: "main",
@@ -228,6 +230,14 @@ export default defineUserConfig({
     mediumZoomPlugin({
       selector: 'img.zoom-custom-imgs', // default
     })
+
   ],
   debug: true,
+  markdown: {
+    headers: {
+      level: [2, 3, 4],
+      shouldAllowNested: true,
+    }
+  }
+
 });

@@ -2,3 +2,120 @@
 .series-container {
   width: 20rem;
 }
+/* 四级目录样式 */
+.page-catalog-container ul .page-catalog-menu-depth_4 {
+  position: relative;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  padding-left: 1.5rem; /* 控制缩进 */
+  font-size: 0.625rem; /* 调整字体大小 */
+  line-height: 0.875rem;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 0.5s;
+}
+
+/* 四级目录文字颜色 */
+.page-catalog-container ul .page-catalog-menu-depth_4 span {
+  --tw-text-opacity: 1;
+  color: rgb(120 144 156 / var(--tw-text-opacity));
+}
+
+/* 四级目录暗色模式文字颜色 */
+.page-catalog-container ul .page-catalog-menu-depth_4 span:is(.dark *) {
+  --tw-text-opacity: 1;
+  color: rgb(148 163 184 / var(--tw-text-opacity));
+}
+
+/* 四级目录小圆点 */
+.page-catalog-container ul .page-catalog-menu-depth_4:before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 1.75rem;
+  margin: auto;
+  display: block;
+  height: 0;
+  width: 0;
+  border-radius: 50%;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 0.5s;
+  --tw-bg-opacity: 1;
+  background-color: rgb(93 103 232 / var(--tw-bg-opacity));
+  content: "";
+}
+
+/* 四级目录激活状态 */
+.page-catalog-container ul .page-catalog-menu-depth_4.active {
+  padding-left: 2.5rem; /* 激活状态的缩进稍微增加 */
+}
+
+.page-catalog-container ul .page-catalog-menu-depth_4.active span {
+  --tw-text-opacity: 1;
+  color: rgb(93 103 232 / var(--tw-text-opacity));
+}
+
+.page-catalog-container ul .page-catalog-menu-depth_4.active:before {
+  height: 0.25rem;
+  width: 0.25rem;
+}
+
+/* 五级目录样式 */
+.page-catalog-container ul .page-catalog-menu-depth_5 {
+  position: relative;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  padding-left: 2.5rem; /* 控制缩进 */
+  font-size: 0.5rem; /* 调整字体大小 */
+  line-height: 0.75rem;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 0.5s;
+}
+
+/* 五级目录文字颜色 */
+.page-catalog-container ul .page-catalog-menu-depth_5 span {
+  --tw-text-opacity: 1;
+  color: rgb(120 144 156 / var(--tw-text-opacity));
+}
+
+/* 五级目录暗色模式文字颜色 */
+.page-catalog-container ul .page-catalog-menu-depth_5 span:is(.dark *) {
+  --tw-text-opacity: 1;
+  color: rgb(148 163 184 / var(--tw-text-opacity));
+}
+
+/* 五级目录小圆点 */
+.page-catalog-container ul .page-catalog-menu-depth_5:before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 1rem;
+  margin: auto;
+  display: block;
+  height: 0;
+  width: 0;
+  border-radius: 50%;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 0.5s;
+  --tw-bg-opacity: 1;
+  background-color: rgb(93 103 232 / var(--tw-bg-opacity));
+  content: "";
+}
+
+/* 五级目录激活状态 */
+.page-catalog-container ul .page-catalog-menu-depth_5.active {
+  padding-left: 1.8rem; /* 激活状态的缩进稍微增加 */
+}
+
+.page-catalog-container ul .page-catalog-menu-depth_5.active span {
+  --tw-text-opacity: 1;
+  color: rgb(93 103 232 / var(--tw-text-opacity));
+}
+
+.page-catalog-container ul .page-catalog-menu-depth_5.active:before {
+  height: 0.25rem;
+  width: 0.25rem;
+}

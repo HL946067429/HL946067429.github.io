@@ -52,7 +52,6 @@ selector的作用就是配合一个线程来管理多个channel，适合连接�
 调用selector的select()会阻塞到channel发生了读写就绪事件，这些事件发生，select()方法就会放回这些事件交给thread来处理。
 
 ### ByteBuffer
-
 #### ByteBuffer的使用方式
 1. 向`buffer`写入数据，调用`channel.read(buffer)`,返回值为实际读取的字节数，若为-1，则表示通道已经关闭
 2. 调用`flip()`切换至 **读模式**
@@ -927,7 +926,7 @@ private static void split(ByteBuffer source) {
 | <img class="zoom-custom-imgs" :src="$withBase('image/Netty/img15.png')"> | <img class="zoom-custom-imgs" :src="$withBase('image/Netty/img16.png')"> |
 :::
 
-### IO模型-阻塞IO(BIO)
+#### IO模型-阻塞IO(BIO)
 :::tip 阻塞IO
 在阻塞IO模型中，应用程序在从调用recvfrom开始到它返回有数据报准备好这段时间是阻塞的，recvfrom返回成功后，应用程序开始处理数据报。
 **`一个人在钓🐟，当没有🐟上钩时，就坐在岸边一直等待`**
@@ -936,7 +935,7 @@ private static void split(ByteBuffer source) {
 :::
 <img class="zoom-custom-imgs" :src="$withBase('image/Netty/img17.png')">
 
-### IO模型-非阻塞IO(NIO)
+#### IO模型-非阻塞IO(NIO)
 :::tip 非阻塞IO
 在非阻塞IO模型中，应用程序把一个套接字设置为非阻塞的，告诉内核当所请求的IO操作无法完成时，不要将进程睡眠，而是返回一个错误状态，应用成基于IO操作函数不断的轮询数据是否已经准备好，如果没有准备好，继续轮询，直到数据准备好为止。
 **`一边钓🐟一边玩儿手机，隔会儿看看有没有🐟上钩时，有的话迅速拉杆`**
@@ -945,7 +944,7 @@ private static void split(ByteBuffer source) {
 :::
 <img class="zoom-custom-imgs" :src="$withBase('image/Netty/img18.png')">
 
-### IO模型-IO多路复用(NIO)
+#### IO模型-IO多路复用(NIO)
 :::tip IO多路复用
 在IO多路复用模型中，会用到`select`、`poll`、`epoll(Linux2.6以后支持)`等系统调用，这些函数也会使进程阻塞，但是和阻塞IO不同，这两个函数可以同时阻塞多个IO操作，而且可以同时对多个读操作和写操作的IO进程检测，直到有数据可读、可写时，才真正调用IO函数。
 **`放了一堆鱼竿，在岸上守着这一对鱼竿，没🐟的时候就玩手机`**
@@ -954,8 +953,8 @@ private static void split(ByteBuffer source) {
 :::
 <img class="zoom-custom-imgs" :src="$withBase('image/Netty/img19.png')">
 
-#### IO多路复用-select
-:::tip select
+##### IO多路复用-select
+:::details select
 select是Linux中最早的IO复用实现方案：
 ```c++
 // 定义类型别名 __fd_mask，本质是 long int
@@ -976,12 +975,142 @@ int select(
 );
 ```
 <img class="zoom-custom-imgs" :src="$withBase('image/Netty/img20.png')">
+![img.png](img.png)
 * select模式存在的问题：
-  需要将整个fd_set从用户空间拷贝到内核空间，select结束还要再次拷贝回用户空间
-  select无法得知具体是哪一个fd就绪，只能通过遍历fd_set
-  fd_set监听的fd数量有限，不能超过1024
+  * 需要将整个fd_set从用户空间拷贝到内核空间，select结束还要再次拷贝回用户空间
+  * select无法得知具体是哪一个fd就绪，只能通过遍历fd_set
+  * fd_set监听的fd数量有限，不能超过1024
 :::
 
+##### IO多路复用-poll
+:::details poll
+poll模式是对select模式做了简单改进，但性能提升不明显
+IO流程：
+* 创建pollfd数组，向其中添加关注的fd信息，数组大小自定义
+* 调用poll函数，将pollfd数组拷贝到内核空间，转链表存储，无上限
+* 内核遍历fd，判断是否就绪
+* 数据就绪或超时后，拷贝pollfd数组到用户空间，返回就绪fd数量n
+* 用户进程判断n是否大于0
+* 大于0则遍历pollfd数组，找到就绪的fd
+
+```c++
+// pollfd 中的事件类型
+#define POLLIN  // 读事件就绪
+#define POLLOUT  // 写事件就绪
+#define POLLERR  // 错误事件
+#define POLLNVAL  // fd未打开
+
+struct pollfd {
+  int fd; // 文件描述符
+  short int events; // 监听的事件类型：读、写、异常
+  short int revents;  // 实际发生的事件类型
+}
+
+int poll(
+  struct pollfd *fds, // pollfd数组，可以自定义大小
+  nfds_t nfds,  // pollfd数组大小
+  int timeout // 超时时间，-1-无限等待，0-立即返回，>0-固定等待事件
+);
+```
+
+* 与select对比：
+  * select模式中的fd_set监听的fd数量有限，不能超过1024,而poll模式在内核采用链表，理论上无限大
+  * 监听fd越多，每次遍历消耗事件越长，性能反而降低
+:::
+
+##### IO多路复用-epoll
+:::details epoll
+epoll模式是对poll模式做了进一步改进，性能提升明显，但需要内核支持，它提供了三个函数：
+
+```c++
+struct eventpoll {
+  struct rb_root rbr; // 红黑树，记录要监听的fd
+  struct list_head rdlist; // 一个链表，记录就绪的fd
+}
+// 1.会在内核创建eventpoll结构体，返回对应的句柄epfd
+int epoll_create(int size);
+
+// 2.将一个fd添加到epoll的红黑树中，并设置ep_poll_callback
+// callback触发时，就把对应的fd加入到rdlist这个就绪列表中
+int epoll_ctl(
+  int epfd, // epoll句柄
+  int op, // 操作类型：ADD、DEL、MOD
+  int fd, // 要监听的fd
+  struct epoll_event *event // 要监听的事件类型: 读、写、异常
+)
+
+// 3.检查rdlist列表是否为空，不为空则返回就绪的fd的数量
+int epoll_wait(
+  int epfd, // epoll句柄
+  struct epoll_event *events, // epoll_wait返回就绪的fd
+  int maxevents, // events数组大小
+  int timeout // 超时时间，-1-无限等待，0-立即返回，>0-固定等待事件
+)
+```
+
+<img class="zoom-custom-imgs" :src="$withBase('image/Netty/img21.png')">
+:::
+::: tip 三种模式的对比
+select模式存在的三个问题：
+* 能监听的fd数量有限，不能超过1024
+* 每次select都需要把所有监听的fd拷贝到内核空间，再拷贝回用户空间
+* 每次都要遍历所有fd来判断就绪状态
+
+poll模式的问题：
+* poll利用链表解决了select中监听fd上限的问题，但依然要遍历所有fd，如果监听过多，性能会下降
+
+epoll模式的解决方案：
+* 基于epoll实例中的红黑树保存要监听的fd，理论上无上限，而且增删改查效率都非常高，性能不会随监听的fd数量增加而下降
+* 每个fd只需要执行一次epoll_ctl添加到红黑树，以后每次epoll_wait无需传递任何参数，无需重复拷贝fd到内核空间
+* 内核会将就绪的fd直接拷贝到用户空间指定位置，用户进程无需遍历所有fd就能知道就绪的fd。
+:::
+
+#### IO模型-信号驱动式IO模型
+:::tip 信号驱动
+在信号驱动的IO模型中，应用程序使用套接字进行信号驱动IO，并安装一个信号处理函数，进程继续运行并不阻塞，当数据准备好时，进程回收到一个SIGIO信号，可以在信号处理函数中调用IO操作函数处理数据。
+**`🐟杆上系了一个铃铛，当铃铛响，就知道🐟上钩了，然后可以专心玩手机`**
+* 优点：信号并没有在等待数据时阻塞，可以提高资源的利用率
+* 缺点：信号IO在大量IO操作时可能会因为信号队列溢出导致没法通知信号驱动IO，尽管对于处理UDP套接字来说有用，即这种信号通知意味着到达一个数据报，挥着返回一个异步错误，但是对于TCP而言，信号驱动IO方式几乎无用，因为导致这种通知的条件为数众多，每一个来判断会消耗很大的资源
+  :::
+<img class="zoom-custom-imgs" :src="$withBase('image/Netty/img22.png')">
+
+
+#### IO模型-异步IO(AIO)
+:::tip 异步IO
+由PSOIX规范定义，应用程序告知内核启动某个操作，并让内核在整个操作(包括将数据从内核拷贝到应用程序的缓冲区)完成后通知应用程序。
+这种模型与信号驱动模型的区别在于：
+* 信号驱动IO是由内核通知应用程序合适启动IO操作
+* 异步IO是由内核通知应用程序IO操作何时完成。
+* 优点：异步IO能够充分利用DMA特性，让IO操作与计算重叠。
+* 缺点：要实现真正的异步IO，操作系统需要大量的工作，目前window下通过IOCP实现。
+:::
+
+<img class="zoom-custom-imgs" :src="$withBase('image/Netty/img23.png')">
+
+#### 5种IO模型总结
+:::tip 总结
+<img class="zoom-custom-imgs" :src="$withBase('image/Netty/img24.png')">
+从图上可以看出。越往后，阻塞越少，理论上效率也是最优
+:::
+
+### 零拷贝
+* 传统IO问题：传统的IO将一个文件通过socket写出
+```java
+File f = new File("helloword/data.txt");
+RandomAccessFile file = new RandomAccessFile(file, "r");
+
+byte[] buf = new byte[(int)f.length()];
+file.read(buf);
+
+Socket socket = ...;
+socket.getOutputStream().write(buf);
+```
+内部工作流程是这样：
+<img class="zoom-custom-imgs" :src="$withBase('image/Netty/img25.png')">
+1. java本身并不具备IO读写能力，因此read方法调用后，要从java程序的用户态切换至内核态，去调用操作系统(kernel)的读能力，将数据读入内核缓冲区，这期间用户线程阻塞，操作系统使用DMA(Direct Memory Access)来实现文件读，期间也不会使用CPU
+2. 线程从内核态切换回用户态，将数据从内核缓冲区读入用户缓冲区(即byte[] buf)，这期间CPU会参与拷贝，无法利用DMA。
+3. 调用write方法，这时将数据从用户缓冲区(byte[] buf)写入socket缓冲区，CPU会参与拷贝
+4. 接下来要向网卡写数据，这项能力 java 又不具备，因此又得从用户态切换至内核态，调用操作系统的写能力，使用 DMA 将 socket 缓冲区的数据写入网卡，不会使用 cpu
 
 ## Netty
 * Cassandra - nosql数据库
