@@ -10,7 +10,8 @@ date: 2020-05-01 10:00:00
 * 降低资源消耗，减少了创建和销毁的次数，每个工作线程都可以被重复利用，可执行多个任务
 * 提高相应速度，当任务达到时，如果有线程可以直接用，不会出现系统僵死
 * 提高线程的可管理性，如果无限制的创建线程，不仅会消耗系统资源，还会降低系统的稳定性，使用线程池可以进行统一的分配，调优和监控
-线程池的核心思想：**线程复用**，同一个线程可以被重复使用，来处理多个任务
+  
+线程池的核心思想：**线程复用**，同一个线程可以被重复使用，来处理多个任务。<br/>
 池化技术(Pool)：一种编程技巧，核心思想是资源复用，在请求量大时能优化应用性能，降低系统频繁建立的资源开销
 :::
 
@@ -357,6 +358,529 @@ private void signalNotEmpty() {
     }
 }
 ```
+
+#### offer(E,timeout,unit)
+> 加put锁，然后判断有没有超限，<br>
+>   * 超限了，等待指定时间，唤醒后继续判断有没有超限，或者时间到了<br>
+>   * 没有超限，入队列，然后再判断有没有超限，没有唤醒生产者<br>
+> 如果是第一个元素入队，唤醒消费者
+
+```java
+public boolean offer(E e, long timeout, TimeUnit unit)
+    throws InterruptedException {
+    // 非空校验
+    if (e == null) throw new NullPointerException();
+    // 转换时间为纳秒
+    long nanos = unit.toNanos(timeout);
+    int c = -1;
+    final ReentrantLock putLock = this.putLock;
+    final AtomicInteger count = this.count;
+    // 获取put锁，和当前queue的count
+    putLock.lockInterruptibly();
+    try {
+        //加锁成功，判断有没有超限
+        while (count.get() == capacity) {
+            // 如果等待时间到了，直接返回false，添加失败
+            if (nanos <= 0)
+                return false;
+            // 超限就等待,awaitNanos挂起线程，指定时间后会被唤醒，并且返回剩余时间
+            nanos = notFull.awaitNanos(nanos);
+        }
+        //入队列
+        enqueue(new Node<E>(e));
+        c = count.getAndIncrement();
+        if (c + 1 < capacity)
+            notFull.signal();
+    } finally {
+        putLock.unlock();
+    }
+    if (c == 0)
+        signalNotEmpty();
+    return true;
+}
+```
+
+#### put(E)方法
+> 加put锁，然后判断有没有超限，
+>   * 超限了，死等
+>   * 没有超限，入队列，然后再判断有没有超限，没有唤醒生产者<br>
+> 如果是第一个元素入队，唤醒消费者
+```java
+public void put(E e) throws InterruptedException {
+    
+    if (e == null) throw new NullPointerException();
+    int c = -1;
+    Node<E> node = new Node<E>(e);
+    final ReentrantLock putLock = this.putLock;
+    final AtomicInteger count = this.count;
+    
+    putLock.lockInterruptibly();
+    try {
+        while (count.get() == capacity) {
+            notFull.await();
+        }
+        enqueue(node);
+        c = count.getAndIncrement();
+        if (c + 1 < capacity)
+            notFull.signal();
+    } finally {
+        putLock.unlock();
+    }
+    if (c == 0)
+        signalNotEmpty();
+}
+```
+
+#### remove()方法
+> 调用poll()方法，存在数据返回数据，不存在抛异常
+```java
+public E remove() {
+    E x = poll();
+    if (x != null)
+        return x;
+    else
+        throw new NoSuchElementException();
+}
+```
+
+#### poll()方法
+> 先判断数量是否为空，为空直接返回null<br>
+> 再获取锁，然后再次判断是否存在数据，存在则利用head获取数据，然后判断剩余数据，存在则唤醒其他消费者<br>
+> 释放锁，<br>
+> 最后判断队列还有没有空位，存在则唤醒生产者
+```java
+public E poll() {
+    // 获取当前队列中的数量
+    final AtomicInteger count = this.count;
+    //数量为空，直接返回null
+    if (count.get() == 0)
+        return null;
+    E x = null;
+    int c = -1;
+    // 获取读锁
+    final ReentrantLock takeLock = this.takeLock;
+    takeLock.lock();
+    try {
+        // 再次判断是否存在数据
+        if (count.get() > 0) {
+            //存在数据。则取出
+            x = dequeue();
+            //count--
+            c = count.getAndDecrement();
+            //如果取数据之前的count > 1,唤醒再排队的消费者
+            if (c > 1)
+                notEmpty.signal();
+        }
+    } finally {
+        takeLock.unlock();
+    }
+    //如果存之前的count == 队列的限制，现在消费了一个数据，有空位了，唤醒生产者继续存数据
+    if (c == capacity)
+        signalNotFull();
+    return x;
+}
+
+private E dequeue() {
+    //拿到头节点
+    Node<E> h = head;
+    // 头节点的后继
+    Node<E> first = h.next;
+    // 移动h，相当于释放head
+    h.next = h; // help GC
+    // 然后让head指向原来头节点的后继
+    head = first;
+    // 拿出数据
+    E x = first.item;
+    // 清空数据
+    first.item = null;
+    //返回数据
+    return x;
+}
+
+private void signalNotFull() {
+    final ReentrantLock putLock = this.putLock;
+    putLock.lock();
+    try {
+        notFull.signal();
+    } finally {
+        putLock.unlock();
+    }
+}
+```
+#### poll(timeout,unit)
+> 流程和poll()方法差不多，区别在于通过while循环判断是否存在数据，不存在则线程等待timeout，如果还是没有返回null
+```java
+public E poll(long timeout, TimeUnit unit) throws InterruptedException {
+    E x = null;
+    int c = -1;
+    long nanos = unit.toNanos(timeout);
+    final AtomicInteger count = this.count;
+    final ReentrantLock takeLock = this.takeLock;
+    takeLock.lockInterruptibly();
+    try {
+        while (count.get() == 0) {
+            if (nanos <= 0)
+                return null;
+            nanos = notEmpty.awaitNanos(nanos);
+        }
+        x = dequeue();
+        c = count.getAndDecrement();
+        if (c > 1)
+            notEmpty.signal();
+    } finally {
+        takeLock.unlock();
+    }
+    if (c == capacity)
+        signalNotFull();
+    return x;
+}
+```
+
+#### take()方法
+> 流程和poll(timeout,unit)差不多，这里是死等，没有超时
+```java
+public E take() throws InterruptedException {
+    E x;
+    int c = -1;
+    final AtomicInteger count = this.count;
+    final ReentrantLock takeLock = this.takeLock;
+    takeLock.lockInterruptibly();
+    try {
+        while (count.get() == 0) {
+            notEmpty.await();
+        }
+        x = dequeue();
+        c = count.getAndDecrement();
+        if (c > 1)
+            notEmpty.signal();
+    } finally {
+        takeLock.unlock();
+    }
+    if (c == capacity)
+        signalNotFull();
+    return x;
+}
+```
+### PriorityBlockingQueue：优先级队列
+> 支持优先级排序的无界阻塞队列，优先级队列基于数组实现，采用了二叉堆思想(小顶堆：左右子节点大于父节点)
+#### 重要属性
+```java
+// 数组的默认长度
+private static final int DEFAULT_INITIAL_CAPACITY = 11;
+// 最大长度 适配不同的虚拟机 -8
+private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
+// 存放数据的数组
+private transient Object[] queue;
+// 数组存放的个数
+private transient int size;
+// 比较器
+private transient Comparator<? super E> comparator;
+// 锁
+private final ReentrantLock lock;
+// 等待唤醒
+private final Condition notEmpty;
+// 是否正在扩容的标志
+private transient volatile int allocationSpinLock;
+```
+
+#### offer()方法
+> 先判断是否需要扩容，需要则扩容
+> 扩容逻辑完成之后，通过比较器进行比较，然后通过siftUp方法进行上移操作
+```java
+public boolean offer(E e) {
+    // 为空判断
+    if (e == null)
+        throw new NullPointerException();
+    final ReentrantLock lock = this.lock;
+    // 加锁
+    lock.lock();
+    int n, cap;
+    Object[] array;
+    // n：当前数组中的count
+    // array：数组
+    // cap：数组长度
+    // 当前数组中的count >= 数组长度时，需要进行扩容操作
+    while ((n = size) >= (cap = (array = queue).length))
+        // 扩容方法
+        tryGrow(array, cap);
+    try {
+        //拿到比较器
+        Comparator<? super E> cmp = comparator;
+        // 如果没有自定义比较器，则使用默认比较器
+        if (cmp == null)
+            // 添加数据，同时平衡二叉堆
+            siftUpComparable(n, e, array);
+        else
+            siftUpUsingComparator(n, e, array, cmp);
+        // 数组长度 + 1
+        size = n + 1;
+        // 唤醒消费者
+        notEmpty.signal();
+    } finally {
+        lock.unlock();
+    }
+    return true;
+}
+
+
+private void tryGrow(Object[] array, int oldCap) {
+    // 释放锁
+    lock.unlock(); // must release and then re-acquire main lock
+    Object[] newArray = null;
+    // 如果扩容标识等于0，然后CAS修改标识
+    if (allocationSpinLock == 0 &&
+        UNSAFE.compareAndSwapInt(this, allocationSpinLockOffset,
+                                 0, 1)) {
+        try {
+            // 计算新长度，如果原来的长度小于64，则新长度等于原来长度 + 2，否则等于原来长度2倍
+            int newCap = oldCap + ((oldCap < 64) ?
+                                   (oldCap + 2) : // grow faster if small
+                                   (oldCap >> 1));
+            // 判断新长度是否超过最大长度
+            if (newCap - MAX_ARRAY_SIZE > 0) {    // possible overflow
+                int minCap = oldCap + 1;
+                // 如果原来长度 + 1是负数，或者大于最大限度，直接oom
+                if (minCap < 0 || minCap > MAX_ARRAY_SIZE)
+                    throw new OutOfMemoryError();
+                // 否则新长度等于最大长度
+                newCap = MAX_ARRAY_SIZE;
+            }
+            // 新长度大于原来长度 并且数组还没边
+            if (newCap > oldCap && queue == array)
+                // 则创建新数组
+                newArray = new Object[newCap];
+        } finally {
+            // 修改扩容标识为0
+            allocationSpinLock = 0;
+        }
+    }
+    // 如果新数组为null，说明其他线程进入扩容方法了，但是没有进入到扩容逻辑，此时交出调度
+    if (newArray == null) // back off if another thread is allocating
+        Thread.yield();
+    // 竞争锁
+    lock.lock();
+    // 竞争锁成功，继续判断新数组不为空，同时数组还是没有变化
+    if (newArray != null && queue == array) {
+        // 则将新数组赋值给queue对象，实现扩容操作
+        queue = newArray;
+        // 将旧数组的数据copy到新数组上
+        System.arraycopy(array, 0, newArray, 0, oldCap);
+    }
+}
+// k：数据的个数(需要添加位置的下标) x：添加的元素 array：数组
+// 每次和父节点对比，如果父节点大于当前数据，父节点下移，继续向上对比
+private static <T> void siftUpComparable(int k, T x, Object[] array) {
+    Comparable<? super T> key = (Comparable<? super T>) x;
+    // 数组中存在数据才需要平衡二叉堆
+    while (k > 0) {
+        // 拿到当前下标的上级下标 (k-1) / 2
+        int parent = (k - 1) >>> 1;
+        // 拿到上级的数据
+        Object e = array[parent];
+        // 比较 如果添加的数据大于等于上级的数据 跳出循环，(说明需要添加的数据的位置就是k下标处)
+        if (key.compareTo((T) e) >= 0)
+            break;
+        // 如果小于，则交换，将原来的父节点的值放到k的位置，然后继续向上，处理
+        array[k] = e;
+        // 将k赋值为父节点所在的下标，然后又进入循环
+        k = parent;
+    }
+    // 将数据插入到k下标的位置
+    array[k] = key;
+}
+```
+#### add()方法
+```java
+public boolean add(E e) {
+    return offer(e);
+}
+```
+#### offer(timeout,unit)方法
+```java
+public boolean offer(E e, long timeout, TimeUnit unit) {
+    return offer(e); // never need to block
+}
+```
+#### put()方法
+```java
+public void put(E e) {
+    offer(e); // never need to block
+}
+```
+
+#### remove()方法
+```java
+public E remove() {
+    E x = poll();
+    if (x != null)
+        return x;
+    else
+        throw new NoSuchElementException();
+}
+```
+
+#### poll()方法
+```java
+public E poll() {
+    final ReentrantLock lock = this.lock;
+    lock.lock();
+    try {
+        return dequeue();
+    } finally {
+        lock.unlock();
+    }
+}
+
+private E dequeue() {
+    int n = size - 1;
+    // 数组中没有数据
+    if (n < 0)
+        return null;
+    else {
+        Object[] array = queue;
+        // 拿到下标为0的数据
+        E result = (E) array[0];
+        // 拿到最大下标的数据
+        E x = (E) array[n];
+        array[n] = null;
+        Comparator<? super E> cmp = comparator;
+        if (cmp == null)
+            siftDownComparable(0, x, array, n);
+        else
+            siftDownUsingComparator(0, x, array, n, cmp);
+        size = n;
+        //返回下标为0的数据
+        return result;
+    }
+}
+// k：0  x：下标最大的数据  n：最大的下标
+private static <T> void siftDownComparable(int k, T x, Object[] array,
+                                           int n) {
+    // 存在数据                                       
+    if (n > 0) {
+        Comparable<? super T> key = (Comparable<? super T>)x;
+        // 因为二叉堆的原因，只需要处理一半的数据
+        // half：n / 2
+        int half = n >>> 1;           // loop while a non-leaf
+        while (k < half) {
+            // 左子节点的下标
+            int child = (k << 1) + 1; // assume left child is least
+            // 左子节点
+            Object c = array[child];
+            // 右子节点的下标
+            int right = child + 1;
+            // 如果右子节点大于n(说明不存在)
+            // 右子节点小于n 并且左子节点大于右子节点
+            if (right < n &&
+                ((Comparable<? super T>) c).compareTo((T) array[right]) > 0)
+                //即 c取左右子节点中较小的
+                c = array[child = right];
+            // 如果最大下标的数小于等于当前左右子节点的较小的，那么最大下标的数据应该放在当前左右子节点的父节点位置,即k的位置，直接跳出循环
+            if (key.compareTo((T) c) <= 0)
+                break;
+            // 将较小的放在k的位置
+            array[k] = c;
+            // k继续向下走，左子节点
+            k = child;
+        }
+        // 将最大下标的数据放在k的位置
+        array[k] = key;
+    }
+}
+```
+
+#### poll(timeout,unit)方法
+```java
+public E poll(long timeout, TimeUnit unit) throws InterruptedException {
+    long nanos = unit.toNanos(timeout);
+    final ReentrantLock lock = this.lock;
+    lock.lockInterruptibly();
+    E result;
+    try {
+        while ( (result = dequeue()) == null && nanos > 0)
+            nanos = notEmpty.awaitNanos(nanos);
+    } finally {
+        lock.unlock();
+    }
+    return result;
+}
+```
+
+#### take()方法
+```java
+public E take() throws InterruptedException {
+    final ReentrantLock lock = this.lock;
+    lock.lockInterruptibly();
+    E result;
+    try {
+        while ( (result = dequeue()) == null)
+            notEmpty.await();
+    } finally {
+        lock.unlock();
+    }
+    return result;
+}
+```
+
+### DelayQueue：延迟队列
+
+#### 重要属性
+```java
+// 锁
+private final transient ReentrantLock lock = new ReentrantLock();
+// 优先队列
+private final PriorityQueue<E> q = new PriorityQueue<E>();
+
+// 用来标识是否有线程在等待
+private Thread leader;
+
+// Condition对象
+private final Condition available = lock.newCondition();
+```
+
+#### add(E)
+```java
+public boolean add(E e) {
+    return offer(e);
+}
+```
+#### offer(E)
+```java
+public boolean offer(E e) {
+    // 获取锁
+    final ReentrantLock lock = this.lock;
+    // 加锁
+    lock.lock();
+    try {
+        // 添加到队列中，如果队列为空，则唤醒等待的线程，这里调用的是优先级队列的方法
+        q.offer(e);
+        // 如果队列中第一个元素就是e，则唤醒等待的线程
+        if (q.peek() == e) {
+            leader = null;
+            available.signal();
+        }
+        return true;
+    } finally {
+        lock.unlock();
+    }
+}
+
+public boolean offer(E e) {
+    if (e == null)
+        throw new NullPointerException();
+    modCount++;
+    int i = size;
+    if (i >= queue.length)
+        grow(i + 1);
+    size = i + 1;
+    if (i == 0)
+        queue[0] = e;
+    else
+        siftUp(i, e);
+    return true;
+}
+```
+
 
 ## JDK中自带的线程池
 ### newFixedThreadPool
