@@ -870,14 +870,249 @@ public boolean offer(E e) {
         throw new NullPointerException();
     modCount++;
     int i = size;
+    // 扩容
     if (i >= queue.length)
         grow(i + 1);
+    // 更新size
     size = i + 1;
+    // 判断插入位置，如果是0，则直接插入
     if (i == 0)
         queue[0] = e;
     else
+        // 否则需要上移操作，保证小顶堆的特性
         siftUp(i, e);
     return true;
+}
+```
+
+#### offer(E,long,TimeUnit)
+```java
+public boolean offer(E e, long timeout, TimeUnit unit) {
+    return offer(e);
+}
+```
+
+#### put(E)
+```java
+public void put(E e) {
+    offer(e);
+}
+```
+
+#### poll()
+```java
+public E poll() {
+    final ReentrantLock lock = this.lock;
+    lock.lock();
+    try {
+        // 获取 队列的第一个元素，如果没有元素、或者第一个元素还没到时间，则返回null
+        E first = q.peek();
+        if (first == null || first.getDelay(NANOSECONDS) > 0)
+            return null;
+        else
+            // 否则返回队列的第一个元素，同时要进行下移操作
+            return q.poll();
+    } finally {
+        lock.unlock();
+    }
+}
+
+public E poll() {
+    if (size == 0)
+        return null;
+    int s = --size;
+    modCount++;
+    E result = (E) queue[0];
+    E x = (E) queue[s];
+    queue[s] = null;
+    if (s != 0)
+        siftDown(0, x);
+    return result;
+}
+```
+
+#### poll(long,TimeUnit)
+```java
+public E poll(long timeout, TimeUnit unit) throws InterruptedException {
+    long nanos = unit.toNanos(timeout);
+    final ReentrantLock lock = this.lock;
+    // 上锁
+    lock.lockInterruptibly();
+    try {
+        // 死循环
+        for (;;) {
+            // 获取队列的第一个元素
+            E first = q.peek();
+            if (first == null) {
+                //如果没有元素，且等待时间小于等于0，则返回null
+                if (nanos <= 0)
+                    return null;
+                else
+                    // 否则继续等待
+                    nanos = available.awaitNanos(nanos);
+            } else {
+                // 拿到第一个元素的延迟时间
+                long delay = first.getDelay(NANOSECONDS);
+                // 时间到了，则返回队列的第一个元素，同时进行下移操作
+                if (delay <= 0)
+                    return q.poll();
+                // 等待时间到了，则返回null
+                if (nanos <= 0)
+                    return null;
+                // 如果时间还没到，则将first置空
+                first = null; // don't retain ref while waiting
+                // 如果等待时间小于元素的延迟时间，或则leader不为空，则继续等待
+                if (nanos < delay || leader != null)
+                    nanos = available.awaitNanos(nanos);
+                else {
+                    // 否则将当前线程设置为leader
+                    Thread thisThread = Thread.currentThread();
+                    leader = thisThread;
+                    try {
+                        // 等待delay时间，重新计算剩余等待时间
+                        long timeLeft = available.awaitNanos(delay);
+                        nanos -= delay - timeLeft;
+                    } finally {
+                        // 最后将leader设置为null，如果是当前线程
+                        if (leader == thisThread)
+                            leader = null;
+                    }
+                }
+            }
+        }
+    } finally {
+        if (leader == null && q.peek() != null)
+            available.signal();
+        lock.unlock();
+    }
+}
+```
+
+#### take()
+```java
+// 同poll(long,TimeUnit)方法一样，只是不需要计算剩余等待时间，这里是死等
+public E take() throws InterruptedException {
+    final ReentrantLock lock = this.lock;
+    lock.lockInterruptibly();
+    try {
+        for (;;) {
+            E first = q.peek();
+            if (first == null)
+                available.await();
+            else {
+                long delay = first.getDelay(NANOSECONDS);
+                if (delay <= 0)
+                    return q.poll();
+                first = null; // don't retain ref while waiting
+                if (leader != null)
+                    available.await();
+                else {
+                    Thread thisThread = Thread.currentThread();
+                    leader = thisThread;
+                    try {
+                        available.awaitNanos(delay);
+                    } finally {
+                        if (leader == thisThread)
+                            leader = null;
+                    }
+                }
+            }
+        }
+    } finally {
+        if (leader == null && q.peek() != null)
+            available.signal();
+        lock.unlock();
+    }
+    }
+```
+### SynchronousQueue
+> 没有锁操作，是一个不存数据的队列， 存放的是生产者和消费者自己 存放和取都是基于`transfer`方法 `transfer`有两种实现，`TransferQueue`，`TransferStack`
+```java
+// e：null消费者，
+//  ：有数据，生产者
+//timed：true标识有时间限制
+E transfer(E e, boolean timed, long nanos) {
+    QNode s = null; 
+    // isData:true 生产者  false：消费者
+    boolean isData = (e != null);
+
+    for (;;) {
+        //拿到尾节点和头节点
+        QNode t = tail;
+        QNode h = head;
+        // 如果尾节点和头节点为空，重新进入循环(一般不会触发)
+        if (t == null || h == null)         // saw uninitialized value
+            continue;                       // spin
+        // 头节点等于尾节点（队列为空） 或者节点类型相同（有节点，但是队列中的角色和当前线程的角色是同一种） 需要将节点放入队列中
+        if (h == t || t.isData == isData) { // empty or same-mode
+            // 拿到尾节点的下一个节点
+            QNode tn = t.next;
+            // 如果t 不是尾节点(并发判断，防止其他线程修改了尾节点)
+            if (t != tail)                  // inconsistent read
+                // 重新进入循环
+                continue;
+            // 尾节点的下一个节点不是null(说明其他线程添加了节点，但是还没将尾节点指向新加的节点)
+            if (tn != null) {               // lagging tail
+                // 将尾节点指向最后的节点
+                advanceTail(t, tn);
+                //重新进入循环
+                continue;
+            }
+            // 看一下时间是不是到了
+            if (timed && nanos <= 0)        // can't wait
+                //时间到了  直接返回null
+                return null;
+            // 时间没到，判断s是不是null(因为可能多次循环，所以保证新节点只是new一次就好了)
+            if (s == null)
+                s = new QNode(e, isData);
+            // CAS将t的下一个节点由null变为新节点
+            if (!t.casNext(null, s))        // failed to link in
+                continue;//修改失败，重新进入循环（可能其他线程添加了节点）
+            //CAS成功，将尾节点指向新加的节点
+            advanceTail(t, s);              // swing tail and wait
+            //走到这里的，就说明是需要等待的，不用等待的再上面就结束了，然后进入等待
+            Object x = awaitFulfill(s, e, timed, nanos);
+            // 唤醒之后，返回的是s的item，如果相等  节点取消了，
+            if (x == s) {                   // wait was cancelled
+                //从队列中脱离
+                clean(t, s);
+                return null;
+            }
+            //判断下一个不是s 不在队列中
+            if (!s.isOffList()) {           // not already unlinked
+                // 重新设置头节点
+                advanceHead(t, s);          // unlink if head
+                if (x != null)              // and forget fields
+                    s.item = s;
+                s.waiter = null;
+            }
+            return (x != null) ? (E)x : e;
+
+        } else {                            // complementary-mode
+            // 队列中存在元素，并且存在的元素和当前线程执行的mode不一样，说明是来和队列中的元素配对的
+            // 获取头节点的后继作为匹配的节点
+            QNode m = h.next;               // node to fulfill
+            // 如果t不等于尾节点，或者头节点的后继等于null，或者h不等于头节点 （并发判断）
+            if (t != tail || m == null || h != head)
+                continue;    // 重新循环               // inconsistent read
+            // 拿到m中的数据
+            Object x = m.item;
+            // 如果当前线程的mode和队列中第一个元素的model一样（都是消费者、都是生产者，需要重新设置头节点，然后重新循环）
+            if (isData == (x != null) ||    // m already fulfilled
+                x == m ||                   // 节点取消
+                !m.casItem(x, e)) {         // CAS修改m中的item，从x修改为e，如果修改成功 说明
+                advanceHead(h, m);          // dequeue and retry
+                continue;
+            }
+            // 将自己修改为head节点
+            advanceHead(h, m);              // successfully fulfilled
+            // 唤醒等待的线程
+            LockSupport.unpark(m.waiter);
+            // x来自于头节点的下一个，不等于null说明队列中存的是生产者，所以当前线程走到这里，说明是消费者，那就返回的是生产者的数据信息x
+            // x等于null，说明队列中是消费者，能走到这里说明是生产者，然后返回的是生产者自己的数据，标识投递成功
+            return (x != null) ? (E)x : e;
+        }
+    }
 }
 ```
 
@@ -885,7 +1120,10 @@ public boolean offer(E e) {
 ## JDK中自带的线程池
 ### newFixedThreadPool
 ::: tip newFixedThreadPool
-固定线程数的线程池，线程是懒加载的，随着任务提交，才会创建线程，队列使用的是LinkedBlockingQueue(无界队列)
+固定线程数的线程池，线程是懒加载的，随着任务提交，才会创建线程，队列使用的是LinkedBlockingQueue(无界队列)<br>
+* 核心线程数等于最大线程数，因此无需超时时间
+* LinkedBlockingQueue是一个单项连边实现的阻塞队列，默认大小为Integer.MAX_VALUE，也就是无界队列，可以存放任意数量的任务，再任务比较多的时候会导致OOM
+* 适用于任务量已知，相对耗时的长期任务
 ```java
 public static ExecutorService newFixedThreadPool(int nThreads) {
     return new ThreadPoolExecutor(nThreads,nThreads
@@ -897,7 +1135,8 @@ public static ExecutorService newFixedThreadPool(int nThreads) {
 
 ### newSingleThreadExecutor
 ::: tip newSingleThreadExecutor
-单例线程池，基于LinkedBlockingQueue实现
+单例线程池，基于LinkedBlockingQueue实现<br>
+* 保证所有任务按照指定顺序执行，线程数固定为1，任务数大于1时会放入到无界队列排队，任务执行完毕，唯一的线程也不会被释放
 ```java
 public static ExecutorService newSingleThreadExecutor() {
     return new FinalizableDelegatedExecutorService(
@@ -910,7 +1149,10 @@ public static ExecutorService newSingleThreadExecutor() {
 
 ### newCachedThreadPool
 ::: tip newCachedThreadPool
-任务只要提交到当前线程池中，就必然有工作线程可以处理，基于SynchronousQueue实现（任务几乎是同时开始）
+任务只要提交到当前线程池中，就必然有工作线程可以处理，基于SynchronousQueue实现（任务几乎是同时开始）<br>
+* 核心线程数是0，最大线程数是29个1，全部都是救急线程（60s后可以回收），可能会创建大量线程从而导致OOM
+* SynchronousQueue作为阻塞队列，没有容量，对于每一个take的线程都会阻塞到直到有一个put的线程放入元素为止
+* 适合任务数比较密集，但每个人物执行时间较短的情况
 ```java
 public static ExecutorService newCachedThreadPool() {
     return new ThreadPoolExecutor(0,Integer.MAX_VALUE,
@@ -945,9 +1187,56 @@ public static ExecutorService newWorkStealingPool() {
 
 ## 自定义线程池
 ### ThreadPoolExecutor
-::: tip 原理
-
-:::
+#### 创建方式
+存放线程的容器
+```java
+private final HashSet<Worker> workers = new HashSet<Worker>();
+```
+构造方法
+```java
+public ThreadPoolExecutor(int corePoolSize,
+                          int maximumPoolSize,
+                          long keepAliveTime,
+                          TimeUnit unit,
+                          BlockingQueue<Runnable> workQueue,
+                          ThreadFactory threadFactory,
+                          RejectedExecutionHandler handler)
+```
+参数介绍：
+* `corePoolSize`：核心线程数，定义了最小可以同时运行的线程数量
+* `maximumPoolSize`：最大线程数，当队列中存放的任务达到队列容量时，当前可以同时运行的数量变为最大线程数，创建线程并立即执行最新的任务，与核心线程数之间的插值又叫线程池的救急线程数
+* `keepAliveTime`：救急线程最大存活时间，当线程中的线程数量大于`corePoolSize`的时候，如果这时没有新的任务提交，核心线程外的线程不会立即销毁，而是会等到`keepAliveTime`时间超时后销毁
+* `unit`：`keepAliveTime`参数的时间单位
+* `workQueue`：阻塞队列，存放被提交但稍微被执行的任务
+* `threadFactory`：线程工厂，创建新线程时用到，可以为线程创建时起名字
+* `handler`：拒绝策略，线程到达最大线程数仍有新任务时会执行拒绝策略
+  * `RejectedExecutionHandler`有4个实现类
+    * `AbortPolicy`：让调用者抛出`RejectedExecutionException`异常，**默认策略**
+    * `CallerRunsPolicy`：让调用者运行的调节机制，将某些任务回退到调用者，从而降低新任务的流量
+    * `DisCardPolicy`：直接丢弃任务，不给予任何处理也不抛出异常
+    * `DiscardOldestPolicy`：放弃队列中最早的任务，把当前任务加入队列中尝试再次提交当前任务
+  * 补充：其他阔加拒绝策略
+    * `Dubbo`：再抛出`RejectedExecutionException`异常前记录日志，并dump线程信息，方便定位问题
+    * `Netty`：创建一个新县城来执行任务
+    * `ActiveMQ`：带超时等待（60s）尝试放入队列
+    * `PinPoint`：它使用了一个拒绝策略链，会逐一尝试策略连中每种拒绝策略
+#### 开发要求
+* 线程资源必须通过线程池提供，不允许再应用中自行显示创建线程
+  * 使用线程池的好处是减少再创建和销毁线程上所消耗的时间以及系统资源的开销，解决资源不足的问题
+  * 如果不适用线程池，有可能造成系统创建大量同类线程而导致消耗完内存或者过度切换的问题
+* 线程池不允许使用`Executors`去创建，而是通过`ThreadPoolExecutor`的方式，这样的处理方式更加明确线程池的运行规则，避免资源耗尽的风险
+  * `FixedThreadPool`和`SingleThreadPool`：请求队列长度为`Integer.MAX_VALUE`，可能会堆积大量的请求，从而导致OOM
+  * `CacheThreadPool`和`ScheduledThreadPool`：允许创建线程数量为`Integer.MAX_VALUE`，可能会创建大量的线程，导致OOM
+* 创建多大容量的线程池合适？
+    * 一般来说池中总线程数是核心线程数的两倍，确保当核心池有线程停止时，核心池外有线程进入核心池
+    * 过小会导致线程不能充分利用系统资源、容易导致饥饿
+    * 过大会导致更多的线程上下文切换，占用更多内存
+      * 上下文切换：当前任务再执行CPU时间片切换到另一个任务之前会先保存自己的状态，以便下次在切换回这个任务时，可以再加载这个任务的状态，任务从保存到再加载的过程就是以此上下文切换
+* 核心线程数常用公式：
+  * **`CPU密集型任务（N+1）`**：这种任务消耗的是CPU资源，可以将核心线程数设置为N（CPU核心数） + 1，比CPU核心数多出来一个线程是为了防止线程发生缺页中断，或者其他原因导致的任务暂停而带来的影响。一旦任务暂停，CPU某个核心就会处于空闲状态，而再这种情况下多出来的一个线程就可以充分利用CPU的空闲时间
+    * CPU密集型简单理解就是利用CPU计算能力的任务比如再内存中堆大量数据进行分析
+  * **`IO密集型任务（2N+1）`**：这种系统CPU处理阻塞状态，用大部分的时间来处理IO交互，而线程再处理IO的适合简短内不会占用CPU来处理，这时就可以将CPU交出给其他线程使用，因此再IO密集型任务的应用中，我们可以多配置一些线程，具体的方法是`2N`或`CPU核数 / （1 - 阻塞系数）`，阻塞系数在0.8-0.9之间
+    * IO密集型就是涉及到网络读取，文件读取此类任务，特点是CPU计算耗费时间相比等待IO操作完成的时间来说很少，大部分时间都花在了等待IO操作完成上。
 #### 重要属性
 ```java
 // 记录工作线程数和线程池状态
@@ -986,6 +1275,16 @@ private static int ctlOf(int rs, int wc) { return rs | wc; }
 #### 线程池状态转换
 
 <img class="zoom-custom-imgs" :src="$withBase('image/base/juc/img1.png')">
+
+#### 提交任务
+|方法| 说明                          |
+|---|-----------------------------|
+|`void execute(Runnable command)`| 提交任务(Executor类API)          |
+|`Future<?>submit(Runnable task)`| 提交任务task()                  |
+|`Future submit(Callable task)`| 提交任务task,用返回值Future获得任务执行结果 |
+|`List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks`|提交tasks中所有任务|
+|`List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit)`|提交 tasks 中所有任务，超时时间针对所有task，超时会取消没有执行完的任务，并抛出超时异常|
+|`T invokeAny(Collection<? extends Callable<T>> tasks)`|提交tasks中所有任务，哪个任务先成功执行完毕，返回此任务执行结果，其他任务取消|
 
 #### execute(Runnable command)方法
 ```java
@@ -1381,4 +1680,239 @@ public void setCorePoolSize(int corePoolSize) {
 ```
 <img class="zoom-custom-imgs" :src="$withBase('image/base/juc/img2.png')">
 
+#### 关闭方法
+|方法|说明|
+|---|---|
+|`void shutdown()`|线程池状态变为 SHUTDOWN，等待任务执行完后关闭线程池，不会接收新任务，但已提交任务会执行完，而且也可以添加线程（不绑定任务）|
+|`List<Runnable> shutdownNow()`|	线程池状态变为 STOP，用 interrupt 中断正在执行的任务，直接关闭线程池，不会接收新任务，会将队列中的任务返回|
+|`boolean isShutdown()`|不在 RUNNING 状态的线程池，此执行者已被关闭，方法返回 true|
+|`boolean isTerminated()`|线程池状态是否是 TERMINATED，如果所有任务在关闭后完成，返回 true|
+|`boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException`|调用 shutdown 后，由于调用线程不会等待所有任务运行结束，如果它想在线程池 TERMINATED 后做些事情，可以利用此方法等待|
 
+#### shutdown()
+> 停止线程池
+```java
+public void shutdown() {
+    final ReentrantLock mainLock = this.mainLock;
+    // 获取线程池全局锁
+    mainLock.lock();
+    try {
+        checkShutdownAccess();
+        // 设置线程池状态为 SHUTDOWN，如果线程池状态大于 SHUTDOWN，就不会设置直接返回
+        advanceRunState(SHUTDOWN);
+        // 中断空闲线程
+        interruptIdleWorkers();
+        // 空方法，子类可以扩展
+        onShutdown(); 
+    } finally {
+        // 释放线程池全局锁
+        mainLock.unlock();
+    }
+    tryTerminate();
+}
+
+// onlyOne == true 说明只中断一个线程 ，false 则中断所有线程
+private void interruptIdleWorkers(boolean onlyOne) {
+    final ReentrantLock mainLock = this.mainLock;
+    / /持有全局锁
+    mainLock.lock();
+    try {
+        // 遍历所有 worker
+        for (Worker w : workers) {
+            // 获取当前 worker 的线程
+            Thread t = w.thread;
+            // 条件一成立：说明当前迭代的这个线程尚未中断
+            // 条件二成立：说明【当前worker处于空闲状态】，阻塞在poll或者take，因为worker执行task时是要加锁的
+            //           每个worker有一个独占锁，w.tryLock()尝试加锁，加锁成功返回 true
+            if (!t.isInterrupted() && w.tryLock()) {
+                try {
+                    // 中断线程，处于 queue 阻塞的线程会被唤醒，进入下一次自旋，返回 null，执行退出相逻辑
+                    t.interrupt();
+                } catch (SecurityException ignore) {
+                } finally {
+                    // 释放worker的独占锁
+                    w.unlock();
+                }
+            }
+            // false，代表中断所有的线程
+            if (onlyOne)
+                break;
+        }
+
+    } finally {
+        // 释放全局锁
+        mainLock.unlock();
+    }
+}
+```
+#### shutdownNow()
+> 直接关闭线程池，不会等待任务执行完成
+```java
+public List<Runnable> shutdownNow() {
+    // 返回值引用
+    List<Runnable> tasks;
+    final ReentrantLock mainLock = this.mainLock;
+    // 获取线程池全局锁
+    mainLock.lock();
+    try {
+        checkShutdownAccess();
+        // 设置线程池状态为STOP
+        advanceRunState(STOP);
+        // 中断线程池中【所有线程】
+        interruptWorkers();
+        // 从阻塞队列中导出未处理的task
+        tasks = drainQueue();
+    } finally {
+        mainLock.unlock();
+    }
+
+    tryTerminate();
+    // 返回当前任务队列中 未处理的任务。
+    return tasks;
+}
+```
+
+#### tryTerminate()
+> 设置为 TERMINATED 状态 if either (SHUTDOWN and pool and queue empty) or (STOP and pool empty)
+```java
+final void tryTerminate() {
+    for (;;) {
+        // 获取 ctl 的值
+        int c = ctl.get();
+        // 线程池正常，或者有其他线程执行了状态转换的方法，当前线程直接返回
+        if (isRunning(c) || runStateAtLeast(c, TIDYING) ||
+            // 线程池是 SHUTDOWN 并且任务队列不是空，需要去处理队列中的任务
+            (runStateOf(c) == SHUTDOWN && ! workQueue.isEmpty()))
+            return;
+        
+        // 执行到这里说明线程池状态为 STOP 或者线程池状态为 SHUTDOWN 并且队列已经是空
+        // 判断线程池中线程的数量
+        if (workerCountOf(c) != 0) {
+            // 【中断一个空闲线程】，在 queue.take() | queue.poll() 阻塞空闲
+            // 唤醒后的线程会在getTask()方法返回null，
+            // 执行 processWorkerExit 退出逻辑时会再次调用 tryTerminate() 唤醒下一个空闲线程
+            interruptIdleWorkers(ONLY_ONE);
+            return;
+        }
+        // 池中的线程数量为 0 来到这里
+        final ReentrantLock mainLock = this.mainLock;
+        // 加全局锁
+        mainLock.lock();
+        try {
+            // 设置线程池状态为 TIDYING 状态，线程数量为 0
+            if (ctl.compareAndSet(c, ctlOf(TIDYING, 0))) {
+                try {
+                    // 结束线程池
+                    terminated();
+                } finally {
+                    // 设置线程池状态为TERMINATED状态。
+                    ctl.set(ctlOf(TERMINATED, 0));
+                    // 【唤醒所有调用 awaitTermination() 方法的线程】
+                    termination.signalAll();
+                }
+                return;
+            }
+        } finally {
+            // 释放线程池全局锁
+            mainLock.unlock();
+        }
+    }
+}
+```
+## Future
+<img class="zoom-custom-imgs" :src="$withBase('image/base/juc/img3.png')">
+
+> 继承 Runnable、Future 接口，用于包装 Callable 对象，实现任务的提交
+```java
+public static void main(String[] args) throws ExecutionException, InterruptedException {
+    FutureTask<String> task = new FutureTask<>(new Callable<String>() {
+        @Override
+        public String call() throws Exception {
+            return "Hello World";
+        }
+    });
+    new Thread(task).start();	//启动线程
+    String msg = task.get();	//获取返回任务数据
+    System.out.println(msg);
+}
+```
+### 构造方法
+```java
+public FutureTask(Callable<V> callable){
+    this.callable = callable;	// 属性注入
+    this.state = NEW; 			// 任务状态设置为 new
+}
+
+public FutureTask(Runnable runnable, V result) {
+    // 适配器模式
+    this.callable = Executors.callable(runnable, result);
+    this.state = NEW;       
+}
+public static <T> Callable<T> callable(Runnable task, T result) {
+    if (task == null) throw new NullPointerException();
+    // 使用装饰者模式将 runnable 转换成 callable 接口，外部线程通过 get 获取
+    // 当前任务执行结果时，结果可能为 null 也可能为传进来的值，【传进来什么返回什么】
+    return new RunnableAdapter<T>(task, result);
+}
+static final class RunnableAdapter<T> implements Callable<T> {
+    final Runnable task;
+    final T result;
+    // 构造方法
+    RunnableAdapter(Runnable task, T result) {
+        this.task = task;
+        this.result = result;
+    }
+    public T call() {
+        // 实则调用 Runnable#run 方法
+        task.run();
+        // 返回值为构造 FutureTask 对象时传入的返回值或者是 null
+        return result;
+    }
+}
+```
+
+### 成员属性
+#### 重要属性
+```java
+ * Possible state transitions:
+ * NEW -> COMPLETING -> NORMAL
+ * NEW -> COMPLETING -> EXCEPTIONAL
+ * NEW -> CANCELLED
+ * NEW -> INTERRUPTING -> INTERRUPTED
+ */
+ // 任务状态
+private volatile int state;
+// 新建状态
+private static final int NEW          = 0;
+// 执行状态
+private static final int COMPLETING   = 1;
+// 完成状态
+private static final int NORMAL       = 2;
+// 异常状态
+private static final int EXCEPTIONAL  = 3;
+// 取消状态
+private static final int CANCELLED    = 4;
+// 中断
+private static final int INTERRUPTING = 5;
+// 中断
+private static final int INTERRUPTED  = 6;
+
+// 任务对象
+private Callable<V> callable;
+// 返回结果
+// 正常情况下：任务正常执行结束，outcome 保存执行结果，callable 返回值
+// 非正常情况：callable 向上抛出异常，outcome 保存异常
+private Object outcome; 
+// 执行任务的线程,当前任务被线程执行期间，保存当前执行任务的线程对象引用
+private volatile Thread runner;
+// 等待结果的Node,会有很多线程去 get 当前任务的结果，这里使用了一种数据结构头插头取（类似栈）的一个队列来保存所有的 get 线程
+private volatile WaitNode waiters;
+
+static final class WaitNode {
+    // 单向链表
+    volatile Thread thread;
+    volatile WaitNode next;
+    WaitNode() { thread = Thread.currentThread(); }
+}
+
+```
