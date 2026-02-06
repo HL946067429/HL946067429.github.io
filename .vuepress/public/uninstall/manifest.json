@@ -1,0 +1,16 @@
+{
+  "name": "卸载管理器",
+  "short_name": "卸载管理",
+  "description": "Android 设备远程卸载管理工具",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F3F4F6",
+  "theme_color": "#4F46E5",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%234F46E5'/><text x='50' y='62' text-anchor='middle' font-size='50'>🗑️</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
