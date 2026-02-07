@@ -366,7 +366,7 @@ function renderHeader(title, backFn) {
 }
 
 function renderPairing() {
-  const codeInputs = S.pairingCode.map((v, i) => {
+  const codeInputs = state.pairingCode.map((v, i) => {
     const inp = h('input', {
       type: 'text',
       inputMode: 'numeric',
@@ -374,12 +374,18 @@ function renderPairing() {
       value: v,
       onInput: (e) => {
         const val = e.target.value.replace(/\D/g, '');
-        S.pairingCode[i] = val;
-        if (val && i < 5) {
-          const next = e.target.parentElement.children[i + 1];
-          if (next) next.focus();
+        state.pairingCode[i] = val;
+        e.target.value = val;
+        if (val) {
+          if (i < 5) {
+            const next = e.target.parentElement.children[i + 1];
+            if (next) next.focus();
+          } else {
+            // All 6 digits entered, hide keyboard and refresh UI
+            e.target.blur();
+            scheduleRender();
+          }
         }
-        scheduleRender();
       },
       onKeydown: (e) => {
         if (e.key === 'Backspace' && !e.target.value && i > 0) {
@@ -390,14 +396,18 @@ function renderPairing() {
       onPaste: (e) => {
         e.preventDefault();
         const text = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 6);
-        for (let j = 0; j < 6; j++) S.pairingCode[j] = text[j] || '';
-        scheduleRender();
-        // Focus last filled or first empty
-        setTimeout(() => {
+        const inputs = e.target.parentElement.children;
+        for (let j = 0; j < 6; j++) {
+          state.pairingCode[j] = text[j] || '';
+          if (inputs[j]) inputs[j].value = state.pairingCode[j];
+        }
+        if (text.length >= 6) {
+          e.target.blur();
+          scheduleRender();
+        } else {
           const idx = Math.min(text.length, 5);
-          const target = e.target.parentElement.children[idx];
-          if (target) target.focus();
-        }, 0);
+          if (inputs[idx]) inputs[idx].focus();
+        }
       }
     });
     return inp;
@@ -523,13 +533,13 @@ function renderDevice() {
 
 function renderAppList() {
   const search = S.searchText.toLowerCase();
+  const allUserApps = S.apps.filter(a => !a.isSystem);
   const filtered = search
-    ? S.apps.filter(a => a.name.toLowerCase().includes(search) || a.packageName.toLowerCase().includes(search))
-    : S.apps;
-  const userApps = filtered.filter(a => !a.isSystem);
-  const sysApps = filtered.filter(a => a.isSystem);
-  const totalWhitelisted = S.apps.filter(a => a.isWhitelisted).length;
-  const toUninstall = S.apps.length - totalWhitelisted;
+    ? allUserApps.filter(a => a.name.toLowerCase().includes(search) || a.packageName.toLowerCase().includes(search))
+    : allUserApps;
+  const userApps = filtered;
+  const totalWhitelisted = allUserApps.filter(a => a.isWhitelisted).length;
+  const toUninstall = allUserApps.length - totalWhitelisted;
 
   function toggleApp(pkg) {
     S.apps = S.apps.map(a => a.packageName === pkg && !a.isSystem ? { ...a, isWhitelisted: !a.isWhitelisted } : a);
@@ -562,7 +572,7 @@ function renderAppList() {
     h('div', { className: 'container' },
       // Summary
       h('div', { className: 'summary-bar' },
-        h('span', null, '\uD83D\uDCE6 ', `${S.apps.length} 总计`),
+        h('span', null, '\uD83D\uDCE6 ', `${allUserApps.length} 总计`),
         h('span', { style: 'color:var(--success)' }, '\u2705 ', `${totalWhitelisted} 保留`),
         h('span', { style: 'color:var(--danger)' }, '\u274C ', `${toUninstall} 卸载`)
       ),
@@ -586,14 +596,6 @@ function renderAppList() {
           )
         ),
         ...userApps.map(appRow)
-      ) : null,
-
-      // System apps
-      sysApps.length ? h('div', { className: 'card' },
-        h('div', { className: 'list-header' },
-          h('span', { className: 'title' }, `系统应用 (${sysApps.length}) \u2014 强制保留`)
-        ),
-        ...sysApps.map(appRow)
       ) : null,
 
       // Save button
