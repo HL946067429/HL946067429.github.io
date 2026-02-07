@@ -139,6 +139,9 @@ const state = {
   searchText: '',
   toast: '',
   modal: null,            // { title, message, confirmText, onConfirm, danger }
+  cmdStatus: '',          // '' | 'received' | 'started' | 'completed' | 'fallback'
+  cmdDetail: '',
+  uninstallProgress: null, // { current, total, appName }
 };
 
 let client = null;
@@ -172,8 +175,15 @@ function mqttConnect() {
     }
   });
 
+  client.on('reconnect', () => {
+    // Re-subscribe after reconnect
+    if (S.deviceId) {
+      client.subscribe(`${TOPIC_PREFIX}/${S.deviceId}/#`, { qos: 1 });
+    }
+  });
+
   client.on('close', () => { S.connected = false; });
-  client.on('error', () => {});
+  client.on('error', (err) => { console.warn('MQTT error:', err); });
   client.on('message', handleMessage);
 }
 
@@ -234,6 +244,26 @@ function handleMessage(topic, payload) {
     }
     return;
   }
+
+  // Command ACK
+  if (topic.endsWith('/command/ack')) {
+    S.cmdStatus = data.status || '';
+    S.cmdDetail = data.detail || '';
+    const labels = { received: '指令已接收', started: '正在执行', completed: '执行完成', fallback: '降级执行' };
+    const msg = labels[data.status] || data.status;
+    showToast(`${msg}${data.detail ? ': ' + data.detail : ''}`);
+    if (data.status === 'completed') {
+      S.uninstallProgress = null;
+    }
+    return;
+  }
+
+  // Uninstall progress
+  if (topic.endsWith('/uninstall/progress')) {
+    S.uninstallProgress = { current: data.current, total: data.total, appName: data.appName };
+    scheduleRender();
+    return;
+  }
 }
 
 function startPairing() {
@@ -284,6 +314,7 @@ function showToast(msg) {
 
 function showModal(opts) { S.modal = opts; }
 function closeModal() { S.modal = null; }
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.modal) closeModal(); });
 
 // Rendering
 function h(tag, attrs, ...children) {
@@ -441,6 +472,16 @@ function renderDevice() {
         )
       ),
 
+      // Uninstall progress
+      S.uninstallProgress ? h('div', { className: 'card', style: 'border-left:4px solid var(--warn)' },
+        h('div', { className: 'card-title' }, '\u26A1 \u6B63\u5728\u5378\u8F7D'),
+        h('div', { style: 'font-size:15px;font-weight:500;margin-bottom:8px' },
+          `${S.uninstallProgress.current}/${S.uninstallProgress.total}: ${S.uninstallProgress.appName}`),
+        h('div', { style: 'background:var(--bg);border-radius:6px;height:8px;overflow:hidden' },
+          h('div', { style: `background:var(--primary);height:100%;width:${Math.round(S.uninstallProgress.current / S.uninstallProgress.total * 100)}%;border-radius:6px;transition:width .3s` })
+        )
+      ) : null,
+
       // Actions
       h('div', { className: 'card' },
         h('div', { className: 'card-title' }, '操作'),
@@ -451,13 +492,18 @@ function renderDevice() {
           }, '\uD83D\uDD04 刷新设备数据'),
           h('button', {
             className: 'btn btn-danger btn-sm',
-            onClick: () => showModal({
-              title: '确认一键卸载',
-              message: '将卸载 Android 设备上所有非白名单应用，此操作不可撤销',
-              confirmText: '卸载',
-              danger: true,
-              onConfirm: () => { sendCommand('uninstall'); closeModal(); showToast('已发送卸载指令'); }
-            })
+            onClick: () => {
+              const toRemove = S.apps.filter(a => !a.isWhitelisted && !a.isSystem);
+              const preview = toRemove.slice(0, 8).map(a => `  \u2022 ${a.name}`).join('\n');
+              const more = toRemove.length > 8 ? `\n  ... \u7B49 ${toRemove.length - 8} \u4E2A\u5E94\u7528` : '';
+              showModal({
+                title: '\u786E\u8BA4\u4E00\u952E\u5378\u8F7D',
+                message: `\u5C06\u5378\u8F7D ${toRemove.length} \u4E2A\u5E94\u7528\uFF1A\n\n${preview}${more}\n\n\u6B64\u64CD\u4F5C\u4E0D\u53EF\u64A4\u9500`,
+                confirmText: '\u5378\u8F7D',
+                danger: true,
+                onConfirm: () => { sendCommand('uninstall'); closeModal(); }
+              });
+            }
           }, '\uD83D\uDDD1\uFE0F 一键卸载'),
           h('button', {
             className: 'btn btn-outline btn-sm',
@@ -572,7 +618,7 @@ function renderModal() {
   return h('div', { className: 'modal-mask', onClick: (e) => { if (e.target === e.currentTarget) closeModal(); } },
     h('div', { className: 'modal' },
       h('h3', null, m.title),
-      h('p', null, m.message),
+      h('p', { style: 'white-space:pre-line' }, m.message),
       h('div', { className: 'btn-group' },
         h('button', { className: 'btn btn-cancel', onClick: closeModal }, '取消'),
         h('button', { className: `btn ${m.danger ? 'btn-danger' : 'btn-primary'}`, onClick: m.onConfirm }, m.confirmText)
