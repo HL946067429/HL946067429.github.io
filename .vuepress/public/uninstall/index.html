@@ -159,7 +159,7 @@ function mqttConnect() {
   client = mqtt.connect(BROKER, {
     clientId,
     clean: true,
-    keepalive: 60,
+    keepalive: 30,
     connectTimeout: 10000,
     reconnectPeriod: 3000,
   });
