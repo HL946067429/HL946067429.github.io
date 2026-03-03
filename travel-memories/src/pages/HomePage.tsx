@@ -13,6 +13,9 @@ import {
   MapPin,
   Calendar,
   Loader2,
+  Navigation,
+  ChevronRight,
+  Locate,
 } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -99,83 +102,91 @@ export default function HomePage() {
           sidebarOpen ? 'w-80' : 'w-0'
         } overflow-hidden shrink-0`}
       >
-        <div className="h-full w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+        <div className="h-full w-80 glass border-r border-gray-200/60 dark:border-gray-700/60 flex flex-col">
           {/* Sidebar header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              我的旅行
-            </h2>
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-200/60 dark:border-gray-700/60">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                <Navigation size={14} className="text-white" />
+              </div>
+              <h2 className="text-[15px] font-bold text-gray-900 dark:text-white">
+                我的旅行
+              </h2>
+            </div>
             <button
               onClick={() => navigate('/trips?new=true')}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-lg transition-all shadow-sm shadow-blue-500/20 hover:shadow-blue-500/30 active:scale-[0.97]"
             >
-              <Plus size={16} />
+              <Plus size={14} strokeWidth={2.5} />
               新建
             </button>
           </div>
 
           {/* Trip list */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 size={24} className="animate-spin text-gray-400" />
               </div>
             ) : trips.length === 0 ? (
               <div className="text-center py-12 text-gray-400 dark:text-gray-500">
-                <MapPin size={40} className="mx-auto mb-3 opacity-50" />
-                <p className="text-sm">暂无旅行</p>
-                <p className="text-xs mt-1">点击「新建」创建第一段旅行</p>
+                <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-700/50 flex items-center justify-center mx-auto mb-4">
+                  <MapPin size={28} className="opacity-40" />
+                </div>
+                <p className="text-sm font-medium">暂无旅行</p>
+                <p className="text-xs mt-1.5 text-gray-400/80">点击「新建」创建第一段旅行</p>
               </div>
             ) : (
-              trips.map((trip) => (
-                <div
-                  key={trip.id}
-                  onClick={() => navigate(`/trips/${trip.id}`)}
-                  onMouseEnter={() => setHoveredTripId(trip.id ?? null)}
-                  onMouseLeave={() => setHoveredTripId(null)}
-                  className={`p-3 rounded-xl border cursor-pointer transition-all ${
-                    hoveredTripId === trip.id
-                      ? 'border-blue-300 dark:border-blue-600 shadow-md'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                  } bg-white dark:bg-gray-800`}
-                >
-                  {/* Color bar + Name */}
-                  <div className="flex items-start gap-3">
-                    <div
-                      className="w-2 h-10 rounded-full shrink-0 mt-0.5"
-                      style={{ backgroundColor: trip.color }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-gray-900 dark:text-white truncate">
-                          {trip.name}
-                        </h3>
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
-                            trip.status === 'completed'
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                              : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                          }`}
-                        >
-                          {trip.status === 'completed' ? '已完成' : '计划中'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        <span className="flex items-center gap-1">
-                          <Calendar size={12} />
-                          {trip.startDate
-                            ? format(new Date(trip.startDate), 'yyyy/MM/dd')
-                            : '未设置'}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MapPin size={12} />
-                          {placeCountMap.get(trip.id!) || 0} 地点
-                        </span>
-                      </div>
+              trips.map((trip) => {
+                const placeCount = placeCountMap.get(trip.id!) || 0
+                return (
+                  <div
+                    key={trip.id}
+                    onClick={() => navigate(`/trips/${trip.id}`)}
+                    onMouseEnter={() => setHoveredTripId(trip.id ?? null)}
+                    onMouseLeave={() => setHoveredTripId(null)}
+                    className={`group relative p-3 rounded-xl cursor-pointer transition-all duration-200 ${
+                      hoveredTripId === trip.id
+                        ? 'bg-white dark:bg-gray-700/60 shadow-md shadow-black/5 dark:shadow-black/20 ring-1 ring-black/5 dark:ring-white/10'
+                        : 'hover:bg-white/80 dark:hover:bg-gray-700/40'
+                    }`}
+                  >
+                    {/* Top: color dot + name + status */}
+                    <div className="flex items-center gap-2.5 mb-1.5">
+                      <div
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: trip.color }}
+                      />
+                      <h3 className="flex-1 font-semibold text-sm text-gray-900 dark:text-white truncate">
+                        {trip.name}
+                      </h3>
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 ${
+                          trip.status === 'completed'
+                            ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400'
+                            : 'bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400'
+                        }`}
+                      >
+                        {trip.status === 'completed' ? '已完成' : '计划中'}
+                      </span>
+                    </div>
+                    {/* Bottom: date + place count + arrow */}
+                    <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500 pl-5">
+                      <span className="flex items-center gap-1">
+                        <Calendar size={11} />
+                        {trip.startDate
+                          ? format(new Date(trip.startDate), 'yyyy/MM/dd')
+                          : '未设置'}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <MapPin size={11} />
+                        {placeCount} 地点
+                      </span>
+                      <ChevronRight size={14} className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 dark:text-gray-600" />
                     </div>
                   </div>
-                </div>
-              ))
+                )
+              })
             )}
           </div>
         </div>
@@ -199,23 +210,43 @@ export default function HomePage() {
         {/* Toggle sidebar button */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="absolute top-4 left-4 z-20 p-2.5 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          className="absolute top-4 left-4 z-20 p-2.5 glass rounded-xl shadow-lg border border-white/20 dark:border-gray-600/30 hover:bg-white dark:hover:bg-gray-700 transition-all"
           title={sidebarOpen ? '隐藏侧栏' : '显示侧栏'}
         >
           {sidebarOpen ? (
-            <PanelLeftClose size={20} className="text-gray-600 dark:text-gray-300" />
+            <PanelLeftClose size={18} className="text-gray-600 dark:text-gray-300" />
           ) : (
-            <PanelLeftOpen size={20} className="text-gray-600 dark:text-gray-300" />
+            <PanelLeftOpen size={18} className="text-gray-600 dark:text-gray-300" />
           )}
+        </button>
+
+        {/* Locate me button */}
+        <button
+          onClick={() => {
+            if (!navigator.geolocation) return
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                if (mapRef.current) {
+                  mapRef.current.flyTo([pos.coords.latitude, pos.coords.longitude], 14, { duration: 0.8 })
+                }
+              },
+              () => {},
+              { enableHighAccuracy: true, timeout: 10000 },
+            )
+          }}
+          className="absolute bottom-6 right-24 z-20 p-3.5 glass rounded-xl shadow-lg border border-white/20 dark:border-gray-600/30 hover:bg-white dark:hover:bg-gray-700 transition-all hover:scale-105 active:scale-[0.97]"
+          title="定位到当前位置"
+        >
+          <Locate size={20} className="text-emerald-600 dark:text-emerald-400" />
         </button>
 
         {/* Quick add button */}
         <button
           onClick={() => navigate('/trips?new=true')}
-          className="absolute bottom-6 right-6 z-20 p-4 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg transition-all hover:scale-105"
+          className="absolute bottom-6 right-6 z-20 p-4 bg-gradient-to-br from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-2xl shadow-xl shadow-blue-500/30 transition-all hover:scale-105 hover:shadow-blue-500/40 active:scale-[0.97]"
           title="新建旅行"
         >
-          <Plus size={24} />
+          <Plus size={22} strokeWidth={2.5} />
         </button>
       </div>
     </div>

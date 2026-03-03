@@ -337,13 +337,16 @@ export default function TimelinePage() {
 
         {/* No trip selected overlay */}
         {selectedTripId === null && !isLoading && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/10 pointer-events-none">
-            <div className="bg-white dark:bg-gray-800 px-6 py-4 rounded-xl shadow-lg text-center pointer-events-auto">
-              <p className="text-gray-600 dark:text-gray-300 font-medium mb-2">
-                选择一个旅行来可视化
+          <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+            <div className="glass px-8 py-6 rounded-2xl shadow-xl border border-white/20 dark:border-gray-600/20 text-center pointer-events-auto animate-in">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20">
+                <Play size={24} className="text-white ml-0.5" />
+              </div>
+              <p className="text-gray-800 dark:text-gray-200 font-semibold text-lg mb-1.5">
+                旅行时间线
               </p>
               <p className="text-sm text-gray-400 dark:text-gray-500">
-                使用下方的下拉框选择旅行
+                在下方选择一个旅行开始播放路线动画
               </p>
             </div>
           </div>
@@ -351,8 +354,8 @@ export default function TimelinePage() {
 
         {/* Loading segments overlay */}
         {isLoadingSegments && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20">
-            <div className="bg-white dark:bg-gray-800 px-6 py-4 rounded-xl shadow-lg flex items-center gap-3">
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/10">
+            <div className="glass px-6 py-4 rounded-2xl shadow-xl border border-white/20 dark:border-gray-600/20 flex items-center gap-3 animate-in">
               <Loader2 size={20} className="animate-spin text-blue-500" />
               <span className="text-gray-700 dark:text-gray-200 font-medium">
                 正在构建路线...
@@ -363,10 +366,10 @@ export default function TimelinePage() {
       </div>
 
       {/* Bottom control bar */}
-      <div className="shrink-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
-        <div className="max-w-5xl mx-auto flex flex-col gap-2">
+      <div className="shrink-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-t border-gray-200/80 dark:border-gray-700/80 px-5 py-4">
+        <div className="max-w-5xl mx-auto flex flex-col gap-3">
           {/* Progress slider */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <input
               type="range"
               min={0}
@@ -374,21 +377,21 @@ export default function TimelinePage() {
               step={0.001}
               value={progress}
               onChange={handleSliderChange}
-              className="flex-1 h-2 accent-blue-500 cursor-pointer"
+              className="flex-1 cursor-pointer"
             />
-            <span className="text-xs text-gray-500 dark:text-gray-400 font-mono w-12 text-right shrink-0">
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-mono w-12 text-right shrink-0 tabular-nums">
               {Math.round(progress * 100)}%
             </span>
           </div>
 
           {/* Controls row */}
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2.5 flex-wrap">
             {/* Trip selector */}
             <div className="relative">
               <select
                 value={selectedTripId ?? ''}
                 onChange={handleTripSelect}
-                className="appearance-none pl-3 pr-8 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 min-w-40"
+                className="appearance-none pl-3 pr-8 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 min-w-44 transition-all"
               >
                 <option value="">-- 选择旅行 --</option>
                 {trips &&
@@ -408,8 +411,8 @@ export default function TimelinePage() {
             <button
               onClick={handlePlayPause}
               disabled={segments.length === 0}
-              className="p-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-              title={isPlaying ? 'Pause' : 'Play'}
+              className="p-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white disabled:from-gray-300 disabled:to-gray-300 dark:disabled:from-gray-600 dark:disabled:to-gray-600 disabled:cursor-not-allowed transition-all shadow-sm shadow-blue-500/20 hover:shadow-md hover:shadow-blue-500/30 active:scale-[0.97]"
+              title={isPlaying ? '暂停' : '播放'}
             >
               {isPlaying ? <Pause size={18} /> : <Play size={18} />}
             </button>
@@ -418,19 +421,22 @@ export default function TimelinePage() {
             <button
               onClick={handleReset}
               disabled={segments.length === 0}
-              className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              title="Reset"
+              className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              title="重置"
             >
               <RotateCcw size={18} />
             </button>
 
+            {/* Separator */}
+            <div className="w-px h-7 bg-gray-200 dark:bg-gray-700 mx-0.5" />
+
             {/* Speed selector */}
-            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
+            <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-700 rounded-xl p-1">
               {SPEED_OPTIONS.map((s) => (
                 <button
                   key={s}
                   onClick={() => setSpeed(s)}
-                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                     speed === s
                       ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
                       : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
@@ -443,17 +449,21 @@ export default function TimelinePage() {
 
             {/* Current segment info */}
             {currentSegment && (
-              <div className="flex items-center gap-2 ml-auto text-sm text-gray-600 dark:text-gray-300">
-                {currentSegment.transportMode === 'driving' && <Car size={16} />}
-                {currentSegment.transportMode === 'train' && <Train size={16} />}
-                {currentSegment.transportMode === 'flight' && <Plane size={16} />}
-                <span>
-                  {currentSegment.fromPlace.name}
-                  <span className="mx-1.5 text-gray-400">-&gt;</span>
-                  {currentSegment.toPlace.name}
+              <div className="flex items-center gap-2.5 ml-auto px-3 py-1.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-sm">
+                <span
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-white"
+                  style={{ backgroundColor: TRANSPORT_CONFIG[currentSegment.transportMode].color }}
+                >
+                  {currentSegment.transportMode === 'driving' && <Car size={14} />}
+                  {currentSegment.transportMode === 'train' && <Train size={14} />}
+                  {currentSegment.transportMode === 'flight' && <Plane size={14} />}
                 </span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
-                  {TRANSPORT_CONFIG[currentSegment.transportMode].label}
+                <span className="text-gray-700 dark:text-gray-200 font-medium">
+                  {currentSegment.fromPlace.name}
+                </span>
+                <span className="text-gray-300 dark:text-gray-600">→</span>
+                <span className="text-gray-700 dark:text-gray-200 font-medium">
+                  {currentSegment.toPlace.name}
                 </span>
               </div>
             )}

@@ -17,6 +17,8 @@ import {
   Star,
   X,
   Trash2,
+  Compass,
+  Locate,
 } from 'lucide-react'
 
 interface SearchResult {
@@ -49,6 +51,7 @@ export default function PlannerPage() {
   const [pendingRating, setPendingRating] = useState(0)
   const [pendingDate, setPendingDate] = useState('')
   const [showPendingForm, setShowPendingForm] = useState(false)
+  const [locating, setLocating] = useState(false)
 
   // Places for selected trip
   const selectedTripPlaces = useMemo(() => {
@@ -104,6 +107,56 @@ export default function PlannerPage() {
     )
     mapRef.current.flyToBounds(bounds, { padding: [60, 60], maxZoom: 12, duration: 0.5 })
   }, [selectedTripPlaces])
+
+  // 获取当前定位
+  const handleLocateMe = useCallback(() => {
+    if (selectedTripId === null) {
+      alert('请先选择一个计划中的旅行')
+      return
+    }
+    if (!navigator.geolocation) {
+      alert('您的浏览器不支持定位功能')
+      return
+    }
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords
+        setPendingLat(latitude)
+        setPendingLng(longitude)
+        setPendingName('')
+        setPendingTransport('driving')
+        setPendingRating(0)
+        setPendingDate('')
+        setShowPendingForm(true)
+        // 飞到当前位置
+        if (mapRef.current) {
+          mapRef.current.flyTo([latitude, longitude], 14, { duration: 0.8 })
+        }
+        // 反向地理编码
+        fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&zoom=14`,
+        )
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.display_name) {
+              setPendingName(data.display_name.split(',')[0])
+            }
+          })
+          .catch(() => {})
+        setLocating(false)
+      },
+      (err) => {
+        setLocating(false)
+        if (err.code === err.PERMISSION_DENIED) {
+          alert('定位权限被拒绝，请在浏览器设置中允许定位')
+        } else {
+          alert('获取定位失败，请重试')
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    )
+  }, [selectedTripId])
 
   // Handle map click: set pending place
   const handleMapClick = useCallback(
@@ -225,37 +278,37 @@ export default function PlannerPage() {
   return (
     <div className="h-full w-full flex relative">
       {/* Left panel */}
-      <div className="w-80 shrink-0 h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col z-10">
+      <div className="w-80 shrink-0 h-full glass border-r border-gray-200/60 dark:border-gray-700/60 flex flex-col z-10">
         {/* Search box */}
-        <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-3 border-b border-gray-200/60 dark:border-gray-700/60">
           <div className="flex gap-2">
             <div className="relative flex-1">
-              <Search size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
                 placeholder="搜索地点..."
-                className="w-full pl-8 pr-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
               />
             </div>
             <button
               onClick={handleSearch}
               disabled={isSearching}
-              className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              className="px-3.5 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl text-sm font-medium transition-all disabled:opacity-50 shadow-sm shadow-blue-500/20"
             >
               {isSearching ? <Loader2 size={16} className="animate-spin" /> : '搜索'}
             </button>
           </div>
           {/* Search results dropdown */}
           {searchResults.length > 0 && (
-            <div className="mt-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden shadow-lg">
+            <div className="mt-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden shadow-xl animate-slide-down">
               {searchResults.map((result, i) => (
                 <button
                   key={i}
                   onClick={() => handlePickSearchResult(result)}
-                  className="w-full text-left px-3 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 border-b last:border-b-0 border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-200"
+                  className="w-full text-left px-3.5 py-2.5 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 border-b last:border-b-0 border-gray-100 dark:border-gray-700/60 text-gray-800 dark:text-gray-200 transition-colors"
                 >
                   <span className="line-clamp-2">{result.display_name}</span>
                 </button>
@@ -265,8 +318,9 @@ export default function PlannerPage() {
         </div>
 
         {/* Trip selector */}
-        <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+        <div className="p-3 border-b border-gray-200/60 dark:border-gray-700/60">
+          <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+            <Compass size={12} />
             计划中的旅行
           </h2>
           {isLoading ? (
@@ -285,20 +339,20 @@ export default function PlannerPage() {
                 <button
                   key={trip.id}
                   onClick={() => setSelectedTripId(trip.id === selectedTripId ? null : trip.id!)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${
                     selectedTripId === trip.id
-                      ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      ? 'bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 font-medium shadow-sm ring-1 ring-blue-200/60 dark:ring-blue-500/20'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60'
                   }`}
                 >
                   <div
-                    className="w-3 h-3 rounded-full shrink-0"
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
                     style={{ backgroundColor: trip.color }}
                   />
                   <span className="flex-1 text-left truncate">{trip.name}</span>
                   <ChevronRight
                     size={14}
-                    className={`shrink-0 transition-transform ${
+                    className={`shrink-0 transition-transform text-gray-400 ${
                       selectedTripId === trip.id ? 'rotate-90' : ''
                     }`}
                   />
@@ -325,11 +379,11 @@ export default function PlannerPage() {
                   在地图上点击添加地点
                 </p>
               ) : (
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   {selectedTripPlaces.map((place, index) => (
                     <div
                       key={place.id}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-sm group cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700/60 text-sm group cursor-pointer hover:shadow-sm hover:border-gray-200 dark:hover:border-gray-600 transition-all"
                       onClick={() => {
                         if (mapRef.current) {
                           mapRef.current.flyTo([place.latitude, place.longitude], 13, { duration: 0.5 })
@@ -370,9 +424,10 @@ export default function PlannerPage() {
 
         {/* Pending add place form */}
         {showPendingForm && selectedTripId !== null && (
-          <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20">
+          <div className="p-3 border-t border-blue-200/60 dark:border-blue-800/40 bg-gradient-to-b from-blue-50 to-blue-50/50 dark:from-blue-900/20 dark:to-blue-900/10">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">
+              <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                <Plus size={12} />
                 新地点
               </span>
               <button onClick={cancelPending} className="p-0.5 hover:bg-blue-100 dark:hover:bg-blue-800/30 rounded">
@@ -489,14 +544,30 @@ export default function PlannerPage() {
         </MapView>
 
         {selectedTripId === null && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-4 py-2 bg-amber-500 text-white text-sm font-medium rounded-full shadow-lg pointer-events-none">
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-5 py-2.5 glass rounded-xl shadow-xl border border-white/20 dark:border-gray-600/20 text-gray-600 dark:text-gray-300 text-sm font-medium pointer-events-none animate-slide-down flex items-center gap-2">
+            <Compass size={14} className="text-amber-500" />
             先选择一个计划中的旅行
           </div>
         )}
 
         {selectedTripId !== null && !showPendingForm && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-full shadow-lg pointer-events-none animate-pulse">
-            在地图上点击添加地点
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 animate-slide-down">
+            <div className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-sm font-medium rounded-xl shadow-xl shadow-blue-500/30 pointer-events-none flex items-center gap-2">
+              <MapPin size={14} />
+              在地图上点击添加地点
+            </div>
+            <button
+              onClick={handleLocateMe}
+              disabled={locating}
+              className="px-3 py-2.5 bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 text-sm font-medium rounded-xl shadow-xl border border-gray-200/60 dark:border-gray-700/60 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors flex items-center gap-1.5 disabled:opacity-50"
+            >
+              {locating ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Locate size={14} />
+              )}
+              定位
+            </button>
           </div>
         )}
       </div>

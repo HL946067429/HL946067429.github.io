@@ -288,8 +288,8 @@ export default function SettingsPage() {
                   { icon: MapPin, count: placeCount, label: '地点', gradient: 'from-emerald-500 to-emerald-600' },
                   { icon: Image, count: photoCount, label: '照片', gradient: 'from-violet-500 to-violet-600' },
                 ].map((item) => (
-                  <div key={item.label} className="text-center py-5 bg-gray-50/80 dark:bg-gray-700/30 rounded-xl">
-                    <div className={`w-10 h-10 rounded-xl mx-auto mb-2.5 flex items-center justify-center bg-gradient-to-br ${item.gradient}`}>
+                  <div key={item.label} className="flex flex-col items-center justify-center py-5 px-3 bg-gray-50/80 dark:bg-gray-700/30 rounded-xl">
+                    <div className={`w-10 h-10 rounded-xl mb-2.5 flex items-center justify-center bg-gradient-to-br ${item.gradient}`}>
                       <item.icon size={18} className="text-white" />
                     </div>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">

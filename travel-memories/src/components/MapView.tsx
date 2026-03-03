@@ -50,8 +50,10 @@ export default function MapView({
       zoomControl={true}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://amap.com/">高德地图</a>'
+        url="https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}"
+        subdomains="1234"
+        maxZoom={18}
       />
       {onMapReady && <MapRefHandler onMapReady={onMapReady} />}
       <MapClickHandler onClick={onClick} />

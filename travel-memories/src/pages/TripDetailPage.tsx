@@ -29,6 +29,7 @@ import {
   Loader2,
   Upload,
   ImageIcon,
+  Locate,
 } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -83,6 +84,8 @@ export default function TripDetailPage() {
   const [newPlaceTransport, setNewPlaceTransport] = useState<TransportMode>('driving')
   const [newPlaceRating, setNewPlaceRating] = useState(0)
 
+  const [locating, setLocating] = useState(false)
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploadingPlaceId, setUploadingPlaceId] = useState<number | null>(null)
 
@@ -110,7 +113,7 @@ export default function TripDetailPage() {
   useEffect(() => {
     if (!mapRef.current || !places || places.length === 0) return
     const bounds = L.latLngBounds(places.map((p) => [p.latitude, p.longitude] as [number, number]))
-    mapRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 })
+    mapRef.current.fitBounds(bounds, { padding: [80, 80], maxZoom: 13 })
   }, [places])
 
   // Handle map ready
@@ -169,6 +172,40 @@ export default function TripDetailPage() {
     })
     setEditingTrip(false)
   }
+
+  const handleLocateMe = useCallback(() => {
+    if (!navigator.geolocation) {
+      alert('您的浏览器不支持定位功能')
+      return
+    }
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords
+        setNewPlaceLat(latitude)
+        setNewPlaceLng(longitude)
+        setShowAddPlace(true)
+        // 飞到当前位置
+        if (mapRef.current) {
+          mapRef.current.flyTo([latitude, longitude], 14, { duration: 0.8 })
+        }
+        // 反向地理编码获取地名
+        reverseGeocode(latitude, longitude).then((name) => {
+          if (name) setNewPlaceName(name)
+        })
+        setLocating(false)
+      },
+      (err) => {
+        setLocating(false)
+        if (err.code === err.PERMISSION_DENIED) {
+          alert('定位权限被拒绝，请在浏览器设置中允许定位')
+        } else {
+          alert('获取定位失败，请重试')
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    )
+  }, [])
 
   const handleMapClickForPlace = (lat: number, lng: number) => {
     if (showAddPlace) {
@@ -314,13 +351,13 @@ export default function TripDetailPage() {
   return (
     <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className={`shrink-0 border-b px-4 py-3 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+      <div className={`shrink-0 border-b px-4 py-3 ${darkMode ? 'bg-gray-800/95 border-gray-700/80 backdrop-blur-sm' : 'bg-white/95 border-gray-200/80 backdrop-blur-sm'}`}>
         <div className="flex items-center gap-3 max-w-7xl mx-auto">
           <button
             onClick={() => navigate('/trips')}
-            className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
           >
-            <ArrowLeft size={20} className="text-gray-600 dark:text-gray-300" />
+            <ArrowLeft size={18} className="text-gray-500 dark:text-gray-400" />
           </button>
 
           {editingTrip ? (
@@ -462,45 +499,76 @@ export default function TripDetailPage() {
       {/* Main content: split view */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left: place list */}
-        <div className="w-96 shrink-0 overflow-y-auto border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <div className="w-96 shrink-0 overflow-y-auto border-r border-gray-200/80 dark:border-gray-700/80 bg-white dark:bg-gray-800">
           <div className="p-3">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+              <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                <MapPin size={12} />
                 地点 ({places.length})
               </h2>
-              <button
-                onClick={() => {
-                  setShowAddPlace(!showAddPlace)
-                  setNewPlaceName('')
-                  setNewPlaceLat(null)
-                  setNewPlaceLng(null)
-                }}
-                className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                  showAddPlace
-                    ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
-                    : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                }`}
-              >
-                {showAddPlace ? (
-                  <>
-                    <X size={14} />
-                    取消
-                  </>
-                ) : (
-                  <>
-                    <Plus size={14} />
-                    添加地点
-                  </>
+              <div className="flex items-center gap-1.5">
+                {!showAddPlace && (
+                  <button
+                    onClick={handleLocateMe}
+                    disabled={locating}
+                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 disabled:opacity-50"
+                  >
+                    {locating ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Locate size={14} />
+                    )}
+                    定位
+                  </button>
                 )}
-              </button>
+                <button
+                  onClick={() => {
+                    setShowAddPlace(!showAddPlace)
+                    setNewPlaceName('')
+                    setNewPlaceLat(null)
+                    setNewPlaceLng(null)
+                  }}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                    showAddPlace
+                      ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                      : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                  }`}
+                >
+                  {showAddPlace ? (
+                    <>
+                      <X size={14} />
+                      取消
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={14} />
+                      添加地点
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Add place form */}
             {showAddPlace && (
               <div className="mb-3 p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
-                <p className="text-xs text-blue-600 dark:text-blue-400 mb-2 font-medium">
-                  在地图上点击选择位置
-                </p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                    在地图上点击选择位置
+                  </p>
+                  <button
+                    onClick={handleLocateMe}
+                    disabled={locating}
+                    className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {locating ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <Locate size={12} />
+                    )}
+                    当前定位
+                  </button>
+                </div>
                 {newPlaceLat !== null && newPlaceLng !== null && (
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                     坐标: {newPlaceLat.toFixed(4)}, {newPlaceLng.toFixed(4)}
@@ -573,17 +641,17 @@ export default function TripDetailPage() {
                   const placePhotos = photosByPlace.get(place.id!) || []
 
                   return (
-                    <div key={place.id} className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div key={place.id} className="rounded-xl border border-gray-100 dark:border-gray-700/80 overflow-hidden bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow">
                       {/* Place header */}
                       <div
-                        className="flex items-center gap-2 p-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+                        className="flex items-center gap-2.5 p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
                         onClick={() => {
                           setExpandedPlaceId(isExpanded ? null : place.id!)
                           focusMapOnPlace(place)
                         }}
                       >
                         <span
-                          className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+                          className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-sm"
                           style={{ backgroundColor: trip.color }}
                         >
                           {index + 1}
@@ -663,7 +731,7 @@ export default function TripDetailPage() {
 
                       {/* Expanded content: photos */}
                       {isExpanded && (
-                        <div className="px-2.5 pb-2.5 border-t border-gray-100 dark:border-gray-700">
+                        <div className="px-3 pb-3 border-t border-gray-100 dark:border-gray-700/60 bg-gray-50/50 dark:bg-gray-750/50">
                           {/* Photo grid */}
                           {placePhotos.length > 0 ? (
                             <div className="grid grid-cols-3 gap-1.5 mt-2">
@@ -771,7 +839,8 @@ export default function TripDetailPage() {
           </MapView>
 
           {showAddPlace && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-full shadow-lg pointer-events-none animate-pulse">
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-sm font-medium rounded-xl shadow-xl shadow-blue-500/30 pointer-events-none animate-slide-down flex items-center gap-2">
+              <MapPin size={14} />
               在地图上点击选择位置
             </div>
           )}
