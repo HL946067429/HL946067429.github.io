@@ -19,7 +19,7 @@ function Loading() {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Suspense fallback={<Loading />}>
         <Routes>
           <Route element={<AppLayout />}>
