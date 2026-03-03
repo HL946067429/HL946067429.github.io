@@ -155,7 +155,7 @@ export default defineUserConfig({
       },
       { text: "Categories", link: "/categories/reco/1.html" },
       { text: "Tags", link: "/tags/tag1/1.html" },
-      { text: "Travel Memories", link: "/travel-memories/" },
+      { text: "Travel Memories", link: "https://www.lin1016.top/travel-memories/" },
     ],
     bulletin: {
       body: [
