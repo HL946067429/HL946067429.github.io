@@ -139,7 +139,7 @@ export default function TripsPage() {
   ]
 
   return (
-    <div className="h-full overflow-y-auto bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900">
+    <div className="h-full overflow-y-auto bg-apple-gray6 dark:bg-gray-900">
       <div className="max-w-6xl mx-auto px-6 sm:px-8 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -153,7 +153,7 @@ export default function TripsPage() {
           </div>
           <button
             onClick={() => { resetForm(); setShowForm(true) }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl font-medium transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 active:scale-[0.97]"
+            className="flex items-center gap-2 px-5 py-2.5 bg-apple-blue hover:bg-apple-blue/85 active:opacity-70 text-white rounded-xl font-medium transition-colors"
           >
             <Plus size={18} strokeWidth={2.5} />
             新建旅行
@@ -168,9 +168,9 @@ export default function TripsPage() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
                   activeTab === tab.key
-                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-md shadow-black/5 dark:shadow-black/20 ring-1 ring-black/5 dark:ring-white/10'
+                    ? 'bg-white dark:bg-gray-800 text-apple-blue dark:text-blue-400'
                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-white/60 dark:hover:bg-gray-800/60'
                 }`}
               >
@@ -267,9 +267,9 @@ export default function TripsPage() {
                     <button
                       type="button"
                       onClick={() => setFormStatus('planned')}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                         formStatus === 'planned'
-                          ? 'bg-amber-50 text-amber-600 ring-2 ring-amber-400/50 dark:bg-amber-900/20 dark:text-amber-400 dark:ring-amber-500/30'
+                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
                           : 'bg-gray-50 text-gray-500 dark:bg-gray-700/50 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                     >
@@ -279,9 +279,9 @@ export default function TripsPage() {
                     <button
                       type="button"
                       onClick={() => setFormStatus('completed')}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                         formStatus === 'completed'
-                          ? 'bg-emerald-50 text-emerald-600 ring-2 ring-emerald-400/50 dark:bg-emerald-900/20 dark:text-emerald-400 dark:ring-emerald-500/30'
+                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                           : 'bg-gray-50 text-gray-500 dark:bg-gray-700/50 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                     >
@@ -304,12 +304,12 @@ export default function TripsPage() {
                         onClick={() => setFormColor(color)}
                         className={`w-8 h-8 rounded-full transition-all duration-200 ${
                           formColor === color
-                            ? 'ring-[3px] ring-offset-2 dark:ring-offset-gray-800 scale-110 shadow-lg'
-                            : 'hover:scale-110 shadow-sm'
+                            ? 'ring-2 ring-offset-2 dark:ring-offset-gray-800'
+                            : 'hover:scale-105'
                         }`}
                         style={{
                           backgroundColor: color,
-                          boxShadow: formColor === color ? `0 0 0 3px white, 0 0 0 5px ${color}, 0 0 12px ${color}60` : undefined,
+                          ...(formColor === color ? { ['--tw-ring-color' as string]: color } : {}),
                         }}
                       />
                     ))}
@@ -395,7 +395,7 @@ export default function TripsPage() {
                   <button
                     onClick={handleCreateTrip}
                     disabled={!formName.trim()}
-                    className="px-6 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-gray-300 disabled:to-gray-300 dark:disabled:from-gray-600 dark:disabled:to-gray-600 disabled:cursor-not-allowed rounded-xl transition-all shadow-sm disabled:shadow-none"
+                    className="px-6 py-2.5 text-sm font-medium text-white bg-apple-blue hover:bg-apple-blue/85 active:opacity-70 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed rounded-xl transition-colors"
                   >
                     创建旅行
                   </button>
@@ -412,7 +412,7 @@ export default function TripsPage() {
           </div>
         ) : filteredTrips.length === 0 ? (
           <div className="text-center py-24">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/20 mb-5">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-apple-gray6 dark:bg-gray-800 mb-5">
               <Globe size={36} className="text-blue-400" />
             </div>
             <p className="text-lg font-medium text-gray-600 dark:text-gray-300">
@@ -426,7 +426,7 @@ export default function TripsPage() {
             {activeTab === 'all' && (
               <button
                 onClick={() => { resetForm(); setShowForm(true) }}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-apple-blue hover:bg-apple-blue/85 active:opacity-70 text-white rounded-xl font-medium transition-colors"
               >
                 <Plus size={18} />
                 新建旅行
@@ -438,7 +438,7 @@ export default function TripsPage() {
             {filteredTrips.map((trip) => (
               <div
                 key={trip.id}
-                className="group bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 overflow-hidden hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-black/30 transition-all duration-300 hover:-translate-y-0.5 cursor-pointer"
+                className="group bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 overflow-hidden transition-colors cursor-pointer"
               >
                 {/* Cover gradient */}
                 <div
@@ -446,19 +446,10 @@ export default function TripsPage() {
                   className="h-32 relative overflow-hidden"
                 >
                   <div
-                    className="absolute inset-0 transition-transform duration-500 group-hover:scale-105"
+                    className="absolute inset-0"
                     style={{
-                      background: `linear-gradient(135deg, ${trip.color}, ${trip.color}99, ${trip.color}44)`,
+                      backgroundColor: trip.color,
                     }}
-                  />
-                  {/* Decorative circles */}
-                  <div
-                    className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-20"
-                    style={{ backgroundColor: 'white' }}
-                  />
-                  <div
-                    className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full opacity-10"
-                    style={{ backgroundColor: 'white' }}
                   />
 
                   <div className="absolute bottom-3 left-3 flex items-center gap-2">

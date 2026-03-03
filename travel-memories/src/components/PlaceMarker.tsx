@@ -31,7 +31,7 @@ function createMarkerIcon(color: string, isPlanned: boolean, index?: number) {
       font-size: 13px;
       font-weight: 600;
       border: 2px solid white;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
       cursor: pointer;
     ">${label}</div>`,
     iconSize: [30, 30],

@@ -120,7 +120,7 @@ function createTransportIcon(mode: string, bearing: number): L.DivIcon {
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
       border: 3px solid white;
       transform: rotate(${bearing}deg);
     ">${iconMap[mode] || iconMap.driving}</div>`,
@@ -339,7 +339,7 @@ export default function TimelinePage() {
         {selectedTripId === null && !isLoading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
             <div className="glass px-8 py-6 rounded-2xl shadow-xl border border-white/20 dark:border-gray-600/20 text-center pointer-events-auto animate-in">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20">
+              <div className="w-14 h-14 rounded-2xl bg-apple-blue flex items-center justify-center mx-auto mb-4">
                 <Play size={24} className="text-white ml-0.5" />
               </div>
               <p className="text-gray-800 dark:text-gray-200 font-semibold text-lg mb-1.5">
@@ -366,8 +366,8 @@ export default function TimelinePage() {
       </div>
 
       {/* Bottom control bar */}
-      <div className="shrink-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-t border-gray-200/80 dark:border-gray-700/80 px-5 py-4">
-        <div className="max-w-5xl mx-auto flex flex-col gap-3">
+      <div className="shrink-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-t border-gray-200/80 dark:border-gray-700/80 px-4 sm:px-5 py-3 sm:py-4">
+        <div className="max-w-5xl mx-auto flex flex-col gap-2.5">
           {/* Progress slider */}
           <div className="flex items-center gap-4">
             <input
@@ -385,88 +385,90 @@ export default function TimelinePage() {
           </div>
 
           {/* Controls row */}
-          <div className="flex items-center gap-2.5 flex-wrap">
-            {/* Trip selector */}
-            <div className="relative">
-              <select
-                value={selectedTripId ?? ''}
-                onChange={handleTripSelect}
-                className="appearance-none pl-3 pr-8 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 min-w-44 transition-all"
-              >
-                <option value="">-- 选择旅行 --</option>
-                {trips &&
-                  trips.map((trip) => (
-                    <option key={trip.id} value={trip.id}>
-                      {trip.name}
-                    </option>
-                  ))}
-              </select>
-              <ChevronDown
-                size={14}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-              />
-            </div>
-
-            {/* Play/Pause */}
-            <button
-              onClick={handlePlayPause}
-              disabled={segments.length === 0}
-              className="p-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white disabled:from-gray-300 disabled:to-gray-300 dark:disabled:from-gray-600 dark:disabled:to-gray-600 disabled:cursor-not-allowed transition-all shadow-sm shadow-blue-500/20 hover:shadow-md hover:shadow-blue-500/30 active:scale-[0.97]"
-              title={isPlaying ? '暂停' : '播放'}
-            >
-              {isPlaying ? <Pause size={18} /> : <Play size={18} />}
-            </button>
-
-            {/* Reset */}
-            <button
-              onClick={handleReset}
-              disabled={segments.length === 0}
-              className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              title="重置"
-            >
-              <RotateCcw size={18} />
-            </button>
-
-            {/* Separator */}
-            <div className="w-px h-7 bg-gray-200 dark:bg-gray-700 mx-0.5" />
-
-            {/* Speed selector */}
-            <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-700 rounded-xl p-1">
-              {SPEED_OPTIONS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setSpeed(s)}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                    speed === s
-                      ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                  }`}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5">
+            {/* Top row: trip selector + play/reset */}
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="relative flex-1 min-w-0">
+                <select
+                  value={selectedTripId ?? ''}
+                  onChange={handleTripSelect}
+                  className="appearance-none w-full pl-3 pr-8 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-colors"
                 >
-                  {s}x
-                </button>
-              ))}
-            </div>
-
-            {/* Current segment info */}
-            {currentSegment && (
-              <div className="flex items-center gap-2.5 ml-auto px-3 py-1.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-sm">
-                <span
-                  className="w-7 h-7 rounded-lg flex items-center justify-center text-white"
-                  style={{ backgroundColor: TRANSPORT_CONFIG[currentSegment.transportMode].color }}
-                >
-                  {currentSegment.transportMode === 'driving' && <Car size={14} />}
-                  {currentSegment.transportMode === 'train' && <Train size={14} />}
-                  {currentSegment.transportMode === 'flight' && <Plane size={14} />}
-                </span>
-                <span className="text-gray-700 dark:text-gray-200 font-medium">
-                  {currentSegment.fromPlace.name}
-                </span>
-                <span className="text-gray-300 dark:text-gray-600">→</span>
-                <span className="text-gray-700 dark:text-gray-200 font-medium">
-                  {currentSegment.toPlace.name}
-                </span>
+                  <option value="">-- 选择旅行 --</option>
+                  {trips &&
+                    trips.map((trip) => (
+                      <option key={trip.id} value={trip.id}>
+                        {trip.name}
+                      </option>
+                    ))}
+                </select>
+                <ChevronDown
+                  size={14}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                />
               </div>
-            )}
+
+              {/* Play/Pause */}
+              <button
+                onClick={handlePlayPause}
+                disabled={segments.length === 0}
+                className="p-2.5 rounded-xl bg-apple-blue hover:bg-apple-blue/85 active:opacity-70 text-white disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors shrink-0"
+                title={isPlaying ? '暂停' : '播放'}
+              >
+                {isPlaying ? <Pause size={18} /> : <Play size={18} />}
+              </button>
+
+              {/* Reset */}
+              <button
+                onClick={handleReset}
+                disabled={segments.length === 0}
+                className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+                title="重置"
+              >
+                <RotateCcw size={18} />
+              </button>
+            </div>
+
+            {/* Bottom row: speed + segment info */}
+            <div className="flex items-center gap-2 sm:gap-2.5">
+              {/* Speed selector */}
+              <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-700 rounded-xl p-1 shrink-0">
+                {SPEED_OPTIONS.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setSpeed(s)}
+                    className={`px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                      speed === s
+                        ? 'bg-white dark:bg-gray-600 text-apple-blue dark:text-blue-400'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                    }`}
+                  >
+                    {s}x
+                  </button>
+                ))}
+              </div>
+
+              {/* Current segment info */}
+              {currentSegment && (
+                <div className="flex items-center gap-2 sm:gap-2.5 ml-auto px-2.5 sm:px-3 py-1.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-sm min-w-0 overflow-hidden">
+                  <span
+                    className="w-7 h-7 rounded-lg flex items-center justify-center text-white shrink-0"
+                    style={{ backgroundColor: TRANSPORT_CONFIG[currentSegment.transportMode].color }}
+                  >
+                    {currentSegment.transportMode === 'driving' && <Car size={14} />}
+                    {currentSegment.transportMode === 'train' && <Train size={14} />}
+                    {currentSegment.transportMode === 'flight' && <Plane size={14} />}
+                  </span>
+                  <span className="text-gray-700 dark:text-gray-200 font-medium truncate">
+                    {currentSegment.fromPlace.name}
+                  </span>
+                  <span className="text-gray-300 dark:text-gray-600 shrink-0">→</span>
+                  <span className="text-gray-700 dark:text-gray-200 font-medium truncate">
+                    {currentSegment.toPlace.name}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

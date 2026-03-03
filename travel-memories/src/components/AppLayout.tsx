@@ -20,10 +20,10 @@ export default function AppLayout() {
       {/* Top nav bar */}
       <header className={`flex items-center justify-between px-5 h-14 border-b shrink-0 ${darkMode ? 'bg-gray-800/95 border-gray-700/80 backdrop-blur-sm' : 'bg-white/95 border-gray-200/80 backdrop-blur-sm'}`}>
         <NavLink to="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:shadow-blue-500/20 transition-shadow">
+          <div className="w-8 h-8 rounded-lg bg-apple-blue flex items-center justify-center">
             <Map size={16} className="text-white" />
           </div>
-          <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent tracking-tight">
+          <span className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
             Travel Memories
           </span>
         </NavLink>
@@ -36,9 +36,9 @@ export default function AppLayout() {
               to={item.to}
               end={item.to === '/'}
               className={({ isActive }) =>
-                `flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                `flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-blue-50 text-blue-600 shadow-sm shadow-blue-500/10 dark:bg-blue-500/15 dark:text-blue-400'
+                    ? 'bg-apple-gray6 text-apple-blue dark:bg-gray-700 dark:text-blue-400'
                     : darkMode
                       ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/60'
                       : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100/80'
@@ -53,7 +53,7 @@ export default function AppLayout() {
 
         {/* Mobile menu button */}
         <button
-          className="md:hidden p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          className="md:hidden p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
           {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -70,9 +70,9 @@ export default function AppLayout() {
               end={item.to === '/'}
               onClick={() => setMobileMenuOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                `flex items-center gap-2.5 px-3 py-3 rounded-xl text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400'
+                    ? 'bg-apple-gray6 text-apple-blue dark:bg-gray-700 dark:text-blue-400'
                     : darkMode
                       ? 'text-gray-300'
                       : 'text-gray-600'

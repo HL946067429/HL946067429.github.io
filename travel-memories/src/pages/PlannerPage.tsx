@@ -276,9 +276,9 @@ export default function PlannerPage() {
   const isLoading = plannedTrips === undefined || allPlaces === undefined
 
   return (
-    <div className="h-full w-full flex relative">
+    <div className="h-full w-full flex flex-col md:flex-row relative">
       {/* Left panel */}
-      <div className="w-80 shrink-0 h-full glass border-r border-gray-200/60 dark:border-gray-700/60 flex flex-col z-10">
+      <div className="h-[50vh] md:h-full md:w-80 shrink-0 glass border-b md:border-b-0 md:border-r border-gray-200/60 dark:border-gray-700/60 flex flex-col z-10">
         {/* Search box */}
         <div className="p-3 border-b border-gray-200/60 dark:border-gray-700/60">
           <div className="flex gap-2">
@@ -296,7 +296,7 @@ export default function PlannerPage() {
             <button
               onClick={handleSearch}
               disabled={isSearching}
-              className="px-3.5 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl text-sm font-medium transition-all disabled:opacity-50 shadow-sm shadow-blue-500/20"
+              className="px-3.5 py-2 bg-apple-blue hover:bg-apple-blue/85 active:opacity-70 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
             >
               {isSearching ? <Loader2 size={16} className="animate-spin" /> : '搜索'}
             </button>
@@ -339,9 +339,9 @@ export default function PlannerPage() {
                 <button
                   key={trip.id}
                   onClick={() => setSelectedTripId(trip.id === selectedTripId ? null : trip.id!)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-colors ${
                     selectedTripId === trip.id
-                      ? 'bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 font-medium shadow-sm ring-1 ring-blue-200/60 dark:ring-blue-500/20'
+                      ? 'bg-apple-gray6 dark:bg-gray-700 text-apple-blue dark:text-blue-400 font-medium'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60'
                   }`}
                 >
@@ -424,7 +424,7 @@ export default function PlannerPage() {
 
         {/* Pending add place form */}
         {showPendingForm && selectedTripId !== null && (
-          <div className="p-3 border-t border-blue-200/60 dark:border-blue-800/40 bg-gradient-to-b from-blue-50 to-blue-50/50 dark:from-blue-900/20 dark:to-blue-900/10">
+          <div className="p-3 border-t border-gray-200/60 dark:border-gray-700/60 bg-apple-gray6 dark:bg-gray-800/50">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
                 <Plus size={12} />
@@ -552,7 +552,7 @@ export default function PlannerPage() {
 
         {selectedTripId !== null && !showPendingForm && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 animate-slide-down">
-            <div className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-sm font-medium rounded-xl shadow-xl shadow-blue-500/30 pointer-events-none flex items-center gap-2">
+            <div className="px-5 py-2.5 bg-apple-blue text-white text-sm font-medium rounded-xl shadow-sm pointer-events-none flex items-center gap-2">
               <MapPin size={14} />
               在地图上点击添加地点
             </div>

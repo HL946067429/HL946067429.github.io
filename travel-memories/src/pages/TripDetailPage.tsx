@@ -497,9 +497,9 @@ export default function TripDetailPage() {
       </div>
 
       {/* Main content: split view */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {/* Left: place list */}
-        <div className="w-96 shrink-0 overflow-y-auto border-r border-gray-200/80 dark:border-gray-700/80 bg-white dark:bg-gray-800">
+        <div className="h-[45vh] md:h-auto md:w-96 shrink-0 overflow-y-auto border-b md:border-b-0 md:border-r border-gray-200/80 dark:border-gray-700/80 bg-white dark:bg-gray-800">
           <div className="p-3">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2">
@@ -606,7 +606,7 @@ export default function TripDetailPage() {
                       key={star}
                       type="button"
                       onClick={() => setNewPlaceRating(star === newPlaceRating ? 0 : star)}
-                      className="p-0.5"
+                      className="p-1.5"
                     >
                       <Star
                         size={18}
@@ -641,7 +641,7 @@ export default function TripDetailPage() {
                   const placePhotos = photosByPlace.get(place.id!) || []
 
                   return (
-                    <div key={place.id} className="rounded-xl border border-gray-100 dark:border-gray-700/80 overflow-hidden bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow">
+                    <div key={place.id} className="rounded-xl border border-gray-100 dark:border-gray-700/80 overflow-hidden bg-white dark:bg-gray-800 transition-colors">
                       {/* Place header */}
                       <div
                         className="flex items-center gap-2.5 p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
@@ -692,14 +692,14 @@ export default function TripDetailPage() {
                           <button
                             onClick={() => handleMovePlace(place.id!, 'up')}
                             disabled={index === 0}
-                            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded disabled:opacity-30"
+                            className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded disabled:opacity-30"
                           >
                             <ChevronUp size={14} className="text-gray-500" />
                           </button>
                           <button
                             onClick={() => handleMovePlace(place.id!, 'down')}
                             disabled={index === places.length - 1}
-                            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded disabled:opacity-30"
+                            className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded disabled:opacity-30"
                           >
                             <ChevronDown size={14} className="text-gray-500" />
                           </button>
@@ -734,12 +734,12 @@ export default function TripDetailPage() {
                         <div className="px-3 pb-3 border-t border-gray-100 dark:border-gray-700/60 bg-gray-50/50 dark:bg-gray-750/50">
                           {/* Photo grid */}
                           {placePhotos.length > 0 ? (
-                            <div className="grid grid-cols-3 gap-1.5 mt-2">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mt-2">
                               {placePhotos.map((photo) => (
                                 <button
                                   key={photo.id}
                                   onClick={() => openLightbox(photo)}
-                                  className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 hover:ring-2 ring-blue-400 transition-all"
+                                  className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 hover:opacity-80 transition-opacity"
                                 >
                                   {photoUrls.get(photo.id!) ? (
                                     <img
@@ -839,7 +839,7 @@ export default function TripDetailPage() {
           </MapView>
 
           {showAddPlace && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-sm font-medium rounded-xl shadow-xl shadow-blue-500/30 pointer-events-none animate-slide-down flex items-center gap-2">
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-5 py-2.5 bg-apple-blue text-white text-sm font-medium rounded-xl shadow-sm pointer-events-none animate-slide-down flex items-center gap-2">
               <MapPin size={14} />
               在地图上点击选择位置
             </div>

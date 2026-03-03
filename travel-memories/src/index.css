@@ -1,9 +1,23 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+@theme {
+  --color-apple-blue: #007AFF;
+  --color-apple-green: #34C759;
+  --color-apple-red: #FF3B30;
+  --color-apple-orange: #FF9500;
+  --color-apple-purple: #AF52DE;
+  --color-apple-gray6: #F2F2F7;
+  --color-apple-gray5: #E5E5EA;
+  --color-apple-gray4: #D1D1D6;
+  --color-apple-gray3: #C7C7CC;
+  --color-apple-gray2: #AEAEB2;
+  --color-apple-gray1: #8E8E93;
+}
+
 :root {
-  --color-primary: #3b82f6;
-  --color-primary-dark: #2563eb;
+  --color-primary: #007AFF;
+  --color-primary-dark: #0056CC;
 }
 
 * {
@@ -18,7 +32,7 @@ html, body, #root {
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -37,7 +51,7 @@ body {
 
 .leaflet-control-zoom {
   border: none !important;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1) !important;
   border-radius: 12px !important;
   overflow: hidden;
 }
@@ -67,7 +81,7 @@ body {
 
 .leaflet-popup-content-wrapper {
   border-radius: 12px !important;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
   padding: 0 !important;
 }
 
@@ -77,7 +91,7 @@ body {
 }
 
 .leaflet-popup-tip {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
 }
 
 /* Custom marker styles */
@@ -87,16 +101,15 @@ body {
   justify-content: center;
   border-radius: 50%;
   border: 3px solid white;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.25);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
   font-weight: 700;
   font-size: 12px;
   color: white;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease;
 }
 
 .custom-marker:hover {
-  transform: scale(1.15);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  transform: scale(1.1);
 }
 
 .custom-marker-planned {
@@ -176,13 +189,13 @@ body {
 
 /* Glass morphism utility */
 .glass {
-  background: rgba(255,255,255,0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .dark .glass {
-  background: rgba(31,41,55,0.85);
+  background: rgba(31,41,55,0.92);
 }
 
 /* Scrollbar */
@@ -209,26 +222,25 @@ input[type="range"]::-webkit-slider-thumb {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #3b82f6;
+  background: white;
   cursor: pointer;
-  border: 3px solid white;
-  box-shadow: 0 2px 8px rgba(59,130,246,0.4);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  border: 2px solid #E5E5EA;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  transition: transform 0.15s ease;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
-  box-shadow: 0 3px 12px rgba(59,130,246,0.5);
+  transform: scale(1.1);
 }
 
 input[type="range"]::-moz-range-thumb {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #3b82f6;
+  background: white;
   cursor: pointer;
-  border: 3px solid white;
-  box-shadow: 0 2px 8px rgba(59,130,246,0.4);
+  border: 2px solid #E5E5EA;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
 }
 
 .dark input[type="range"] {

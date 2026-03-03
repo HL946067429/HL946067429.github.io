@@ -207,8 +207,8 @@ export default function SettingsPage() {
   const statsLoading = tripCount === undefined || placeCount === undefined || photoCount === undefined
 
   return (
-    <div className="h-full overflow-y-auto bg-gradient-to-br from-slate-50 via-blue-50/20 to-slate-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900">
-      <div className="max-w-2xl mx-auto px-8 py-8">
+    <div className="h-full overflow-y-auto bg-apple-gray6 dark:bg-gray-900">
+      <div className="max-w-2xl mx-auto px-4 sm:px-8 py-8">
         {/* Page header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
@@ -253,8 +253,8 @@ export default function SettingsPage() {
               </div>
               <button
                 onClick={toggleDarkMode}
-                className={`relative inline-flex h-7 w-[52px] items-center rounded-full transition-all duration-300 ${
-                  darkMode ? 'bg-indigo-500 shadow-lg shadow-indigo-500/30' : 'bg-gray-200 dark:bg-gray-600'
+                className={`relative inline-flex h-7 w-[52px] items-center rounded-full transition-colors duration-300 ${
+                  darkMode ? 'bg-apple-blue' : 'bg-gray-200 dark:bg-gray-600'
                 }`}
               >
                 <span
@@ -284,12 +284,12 @@ export default function SettingsPage() {
             ) : (
               <div className="grid grid-cols-3 gap-4 p-5">
                 {[
-                  { icon: Route, count: tripCount, label: '旅行', gradient: 'from-blue-500 to-blue-600' },
-                  { icon: MapPin, count: placeCount, label: '地点', gradient: 'from-emerald-500 to-emerald-600' },
-                  { icon: Image, count: photoCount, label: '照片', gradient: 'from-violet-500 to-violet-600' },
+                  { icon: Route, count: tripCount, label: '旅行', bg: 'bg-apple-blue' },
+                  { icon: MapPin, count: placeCount, label: '地点', bg: 'bg-apple-green' },
+                  { icon: Image, count: photoCount, label: '照片', bg: 'bg-apple-purple' },
                 ].map((item) => (
-                  <div key={item.label} className="flex flex-col items-center justify-center py-5 px-3 bg-gray-50/80 dark:bg-gray-700/30 rounded-xl">
-                    <div className={`w-10 h-10 rounded-xl mb-2.5 flex items-center justify-center bg-gradient-to-br ${item.gradient}`}>
+                  <div key={item.label} className="flex flex-col items-center justify-center py-3 sm:py-5 px-3 bg-gray-50/80 dark:bg-gray-700/30 rounded-xl">
+                    <div className={`w-10 h-10 rounded-xl mb-2.5 flex items-center justify-center ${item.bg}`}>
                       <item.icon size={18} className="text-white" />
                     </div>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
@@ -334,7 +334,7 @@ export default function SettingsPage() {
                 <button
                   onClick={handleExport}
                   disabled={exporting}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl text-sm font-medium transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-apple-blue hover:bg-apple-blue/85 active:opacity-70 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {exporting ? (
                     <>
@@ -454,8 +454,8 @@ export default function SettingsPage() {
                       clearStep === 0
                         ? 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30'
                         : clearStep === 1
-                          ? 'bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/25'
-                          : 'bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-600/30 animate-pulse'
+                          ? 'bg-apple-red text-white hover:bg-apple-red/85 active:opacity-70'
+                          : 'bg-apple-red text-white hover:bg-apple-red/85 active:opacity-70'
                     }`}
                   >
                     <Trash2 size={14} />
@@ -492,7 +492,7 @@ export default function SettingsPage() {
 
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 shadow-sm">
             <div className="p-5 text-center">
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/20 mb-4">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-apple-blue mb-4">
                 <span className="text-2xl">🗺️</span>
               </div>
               <h3 className="font-bold text-gray-900 dark:text-white text-lg">Travel Memories</h3>

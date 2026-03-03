@@ -99,14 +99,14 @@ export default function HomePage() {
       {/* Sidebar */}
       <div
         className={`absolute md:relative z-10 h-full transition-all duration-300 ease-in-out ${
-          sidebarOpen ? 'w-80' : 'w-0'
+          sidebarOpen ? 'w-[85vw] sm:w-80' : 'w-0'
         } overflow-hidden shrink-0`}
       >
-        <div className="h-full w-80 glass border-r border-gray-200/60 dark:border-gray-700/60 flex flex-col">
+        <div className="h-full w-[85vw] sm:w-80 glass border-r border-gray-200/60 dark:border-gray-700/60 flex flex-col">
           {/* Sidebar header */}
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-200/60 dark:border-gray-700/60">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-apple-blue flex items-center justify-center">
                 <Navigation size={14} className="text-white" />
               </div>
               <h2 className="text-[15px] font-bold text-gray-900 dark:text-white">
@@ -115,7 +115,7 @@ export default function HomePage() {
             </div>
             <button
               onClick={() => navigate('/trips?new=true')}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-lg transition-all shadow-sm shadow-blue-500/20 hover:shadow-blue-500/30 active:scale-[0.97]"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-apple-blue hover:bg-apple-blue/85 active:opacity-70 rounded-lg transition-colors"
             >
               <Plus size={14} strokeWidth={2.5} />
               新建
@@ -145,10 +145,10 @@ export default function HomePage() {
                     onClick={() => navigate(`/trips/${trip.id}`)}
                     onMouseEnter={() => setHoveredTripId(trip.id ?? null)}
                     onMouseLeave={() => setHoveredTripId(null)}
-                    className={`group relative p-3 rounded-xl cursor-pointer transition-all duration-200 ${
+                    className={`group relative p-3 rounded-xl cursor-pointer transition-colors ${
                       hoveredTripId === trip.id
-                        ? 'bg-white dark:bg-gray-700/60 shadow-md shadow-black/5 dark:shadow-black/20 ring-1 ring-black/5 dark:ring-white/10'
-                        : 'hover:bg-white/80 dark:hover:bg-gray-700/40'
+                        ? 'bg-apple-gray6 dark:bg-gray-700/60'
+                        : 'hover:bg-apple-gray6/60 dark:hover:bg-gray-700/40'
                     }`}
                   >
                     {/* Top: color dot + name + status */}
@@ -210,7 +210,7 @@ export default function HomePage() {
         {/* Toggle sidebar button */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="absolute top-4 left-4 z-20 p-2.5 glass rounded-xl shadow-lg border border-white/20 dark:border-gray-600/30 hover:bg-white dark:hover:bg-gray-700 transition-all"
+          className="absolute top-4 left-4 z-20 p-2.5 glass rounded-xl shadow-sm border border-white/20 dark:border-gray-600/30 hover:bg-white dark:hover:bg-gray-700 transition-colors"
           title={sidebarOpen ? '隐藏侧栏' : '显示侧栏'}
         >
           {sidebarOpen ? (
@@ -234,7 +234,7 @@ export default function HomePage() {
               { enableHighAccuracy: true, timeout: 10000 },
             )
           }}
-          className="absolute bottom-6 right-24 z-20 p-3.5 glass rounded-xl shadow-lg border border-white/20 dark:border-gray-600/30 hover:bg-white dark:hover:bg-gray-700 transition-all hover:scale-105 active:scale-[0.97]"
+          className="absolute bottom-6 right-24 z-20 p-3.5 glass rounded-xl shadow-sm border border-white/20 dark:border-gray-600/30 hover:bg-white dark:hover:bg-gray-700 active:opacity-70 transition-colors"
           title="定位到当前位置"
         >
           <Locate size={20} className="text-emerald-600 dark:text-emerald-400" />
@@ -243,7 +243,7 @@ export default function HomePage() {
         {/* Quick add button */}
         <button
           onClick={() => navigate('/trips?new=true')}
-          className="absolute bottom-6 right-6 z-20 p-4 bg-gradient-to-br from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-2xl shadow-xl shadow-blue-500/30 transition-all hover:scale-105 hover:shadow-blue-500/40 active:scale-[0.97]"
+          className="absolute bottom-6 right-6 z-20 p-4 bg-apple-blue hover:bg-apple-blue/85 active:opacity-70 text-white rounded-2xl shadow-md transition-colors"
           title="新建旅行"
         >
           <Plus size={22} strokeWidth={2.5} />
