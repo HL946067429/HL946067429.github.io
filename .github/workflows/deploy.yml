@@ -1,4 +1,4 @@
-name: Deploy VuePress site to Pages
+name: Deploy VuePress + Travel Memories to Pages
 
 on:
   push:
@@ -26,25 +26,37 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: npm
 
-      - name: Install Dependencies
-        run: npm install
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
 
-      - name: Check Project Structure
-        run: |
-          echo "Listing project structure..."
-          ls -R . || echo "Project root not found"
-          ls -R .vuepress || echo ".vuepress directory not found"
+      # Build VuePress blog
+      - name: Install VuePress Dependencies
+        run: npm install
 
       - name: Build VuePress Site
         run: npm run build
 
-      - name: Check Build Output
+      # Build Travel Memories app
+      - name: Install Travel Memories Dependencies
+        working-directory: travel-memories
+        run: pnpm install
+
+      - name: Build Travel Memories
+        working-directory: travel-memories
+        run: pnpm build
+
+      # Merge outputs: copy travel-memories dist into VuePress dist
+      - name: Merge Build Outputs
         run: |
-          echo "Checking build output..."
-          ls -R .vuepress/dist || echo ".vuepress/dist not found"
+          cp -r travel-memories/dist .vuepress/dist/travel-memories
+          echo "--- Final output structure ---"
+          ls -la .vuepress/dist/
+          ls -la .vuepress/dist/travel-memories/
 
       - name: Upload Artifact
         if: success()
