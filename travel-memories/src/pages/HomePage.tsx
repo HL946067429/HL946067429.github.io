@@ -5,6 +5,8 @@ import { db } from '@/db'
 import { useAppStore } from '@/stores/appStore'
 import MapView from '@/components/MapView'
 import PlaceMarker from '@/components/PlaceMarker'
+import PhotoMarker from '@/components/PhotoMarker'
+import type { Photo } from '@/types'
 import L from 'leaflet'
 import {
   PanelLeftOpen,
@@ -16,6 +18,7 @@ import {
   Navigation,
   ChevronRight,
   Locate,
+  Camera,
 } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -27,6 +30,8 @@ export default function HomePage() {
 
   const trips = useLiveQuery(() => db.trips.orderBy('updatedAt').reverse().toArray())
   const places = useLiveQuery(() => db.places.toArray())
+  const photos = useLiveQuery(() => db.photos.toArray())
+  const [showPhotos, setShowPhotos] = useState(true)
 
   // Build maps
   const tripColorMap = useMemo(() => {
@@ -52,6 +57,19 @@ export default function HomePage() {
     }
     return map
   }, [trips])
+
+  // Photos grouped by placeId
+  const photosByPlace = useMemo(() => {
+    const map = new Map<number, Photo[]>()
+    if (photos) {
+      for (const photo of photos) {
+        const existing = map.get(photo.placeId) || []
+        existing.push(photo)
+        map.set(photo.placeId, existing)
+      }
+    }
+    return map
+  }, [photos])
 
   const placeCountMap = useMemo(() => {
     const map = new Map<number, number>()
@@ -91,6 +109,12 @@ export default function HomePage() {
       mapRef.current.flyToBounds(bounds, { padding: [60, 60], maxZoom: 12, duration: 0.5 })
     }
   }, [hoveredTripId, places])
+
+  // Places that have photos
+  const placesWithPhotos = useMemo(() => {
+    if (!places) return []
+    return places.filter((p) => p.id !== undefined && (photosByPlace.get(p.id)?.length ?? 0) > 0)
+  }, [places, photosByPlace])
 
   const isLoading = trips === undefined || places === undefined
 
@@ -205,6 +229,15 @@ export default function HomePage() {
                 onClick={() => navigate(`/trips/${place.tripId}`)}
               />
             ))}
+          {showPhotos &&
+            placesWithPhotos.map((place) => (
+              <PhotoMarker
+                key={`photo-${place.id}`}
+                place={place}
+                photos={photosByPlace.get(place.id!) || []}
+                onClick={() => navigate(`/trips/${place.tripId}`)}
+              />
+            ))}
         </MapView>
 
         {/* Toggle sidebar button */}
@@ -218,6 +251,19 @@ export default function HomePage() {
           ) : (
             <PanelLeftOpen size={18} className="text-gray-600 dark:text-gray-300" />
           )}
+        </button>
+
+        {/* Toggle photo markers */}
+        <button
+          onClick={() => setShowPhotos(!showPhotos)}
+          className={`absolute bottom-6 right-42 z-20 p-3.5 glass rounded-xl shadow-sm border transition-colors ${
+            showPhotos
+              ? 'border-apple-blue/40 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-500/30'
+              : 'border-white/20 dark:border-gray-600/30 hover:bg-white dark:hover:bg-gray-700'
+          }`}
+          title={showPhotos ? '隐藏照片' : '显示照片'}
+        >
+          <Camera size={20} className={showPhotos ? 'text-apple-blue' : 'text-gray-500 dark:text-gray-400'} />
         </button>
 
         {/* Locate me button */}

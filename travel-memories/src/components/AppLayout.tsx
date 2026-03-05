@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from 'react-router-dom'
-import { Map, Route, Compass, PlayCircle, Settings, Menu, X } from 'lucide-react'
+import { Map, Route, Compass, PlayCircle, Image, Settings, Menu, X } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
 import { useState } from 'react'
 
@@ -8,6 +8,7 @@ const navItems = [
   { to: '/trips', icon: Route, label: '旅行' },
   { to: '/planner', icon: Compass, label: '计划' },
   { to: '/timeline', icon: PlayCircle, label: '时间线' },
+  { to: '/gallery', icon: Image, label: '照片墙' },
   { to: '/settings', icon: Settings, label: '设置' },
 ]
 

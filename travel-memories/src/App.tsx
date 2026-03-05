@@ -7,6 +7,7 @@ const TripsPage = lazy(() => import('@/pages/TripsPage'))
 const TripDetailPage = lazy(() => import('@/pages/TripDetailPage'))
 const PlannerPage = lazy(() => import('@/pages/PlannerPage'))
 const TimelinePage = lazy(() => import('@/pages/TimelinePage'))
+const GalleryPage = lazy(() => import('@/pages/GalleryPage'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
 
 function Loading() {
@@ -28,6 +29,7 @@ export default function App() {
             <Route path="/trips/:id" element={<TripDetailPage />} />
             <Route path="/planner" element={<PlannerPage />} />
             <Route path="/timeline" element={<TimelinePage />} />
+            <Route path="/gallery" element={<GalleryPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Routes>
