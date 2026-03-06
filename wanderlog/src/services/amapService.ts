@@ -151,28 +151,53 @@ export async function preRequestLocationPermission(): Promise<void> {
 
 /**
  * Reverse geocode: coordinates -> address string.
- * Uses AMap REST API (faster than loading the full Geocoder plugin).
+ * Tries AMap REST API first (if key available), then Nominatim (free, no key).
  */
 export async function reverseGeocode(lat: number, lng: number): Promise<string> {
-  if (!AMAP_KEY) return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  // Try AMap first if key is configured
+  if (AMAP_KEY) {
+    try {
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 3000);
 
+      const res = await fetch(
+        `https://restapi.amap.com/v3/geocode/regeo?output=json&location=${lng},${lat}&key=${AMAP_KEY}&radius=200`,
+        { signal: controller.signal },
+      );
+      clearTimeout(tid);
+
+      const data = await res.json();
+      if (data.status === '1' && data.regeocode) {
+        const addr = data.regeocode.formatted_address;
+        const poi = data.regeocode.pois?.[0]?.name;
+        const road = data.regeocode.addressComponent?.street;
+        const result = poi || road || addr;
+        if (result) return result;
+      }
+    } catch { /* fall through to Nominatim */ }
+  }
+
+  // Fallback: Nominatim (OpenStreetMap) - free, no key required
   try {
     const controller = new AbortController();
     const tid = setTimeout(() => controller.abort(), 3000);
 
     const res = await fetch(
-      `https://restapi.amap.com/v3/geocode/regeo?output=json&location=${lng},${lat}&key=${AMAP_KEY}&radius=200`,
-      { signal: controller.signal },
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&accept-language=zh`,
+      { signal: controller.signal, headers: { 'User-Agent': 'WanderLog/1.0' } },
     );
     clearTimeout(tid);
 
     const data = await res.json();
-    if (data.status === '1' && data.regeocode) {
-      const addr = data.regeocode.formatted_address;
-      // Return a short version: just the POI or road name
-      const poi = data.regeocode.pois?.[0]?.name;
-      const road = data.regeocode.addressComponent?.street;
-      return poi || road || addr || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    if (data.display_name) {
+      // Try to extract a short meaningful name
+      const name = data.name;
+      const road = data.address?.road;
+      const neighbourhood = data.address?.neighbourhood;
+      const suburb = data.address?.suburb;
+      const city = data.address?.city || data.address?.town || data.address?.county;
+      // Prefer: POI name > road > neighbourhood > suburb, city
+      return name || road || neighbourhood || (suburb && city ? `${city}${suburb}` : null) || city || data.display_name.split(',')[0];
     }
   } catch { /* ignore */ }
 
