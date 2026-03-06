@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#F27D26"/>
+  <g transform="translate(256,256)">
+    <!-- Map pin -->
+    <path d="M0-120 C-55-120-100-75-100-20 C-100 40 0 140 0 140 S100 40 100-20 C100-75 55-120 0-120Z" fill="white" opacity="0.95"/>
+    <circle cx="0" cy="-20" r="35" fill="#F27D26"/>
+    <!-- Camera lens hint -->
+    <circle cx="0" cy="-20" r="18" fill="white" opacity="0.6"/>
+    <circle cx="0" cy="-20" r="8" fill="#F27D26"/>
+  </g>
+</svg>

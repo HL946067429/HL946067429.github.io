@@ -2,8 +2,22 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>WanderLog - 旅迹记录</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="/wanderlog/manifest.json" />
+    <meta name="theme-color" content="#F27D26" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- iOS PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="WanderLog" />
+    <link rel="apple-touch-icon" href="/wanderlog/icon-192.png" />
+
+    <!-- Splash screen color -->
+    <style>html,body{background:#f5f2ed}</style>
   </head>
   <body>
     <div id="root"></div>
