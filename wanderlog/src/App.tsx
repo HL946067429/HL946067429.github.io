@@ -153,81 +153,69 @@ export default function App() {
 
     setIsQuickCheckingIn(true);
     try {
-      // 1. Read image first (always succeeds)
+      // 1. Read image (fast, local operation)
       const reader = new FileReader();
       const imageData = await new Promise<string>((resolve) => {
         reader.onloadend = () => resolve(reader.result as string);
         reader.readAsDataURL(file);
       });
 
-      // 2. Try to get location (with fallback)
-      let latitude = 39.9;
-      let longitude = 116.4;
-      let locationName = '未知地点';
-
-      try {
-        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 8000,
-            maximumAge: 60000
-          });
-        });
-        latitude = position.coords.latitude;
-        longitude = position.coords.longitude;
-
-        // 3. Reverse geocode with timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-        try {
-          const geoResponse = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
-            { signal: controller.signal }
-          );
-          clearTimeout(timeoutId);
-          const geoData = await geoResponse.json();
-          locationName = geoData.display_name?.split(',')[0] || geoData.name || '当前位置';
-        } catch {
-          clearTimeout(timeoutId);
-          locationName = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-        }
-      } catch {
-        // Geolocation failed, use defaults
-      }
-
-      // 4. Create check-in
+      // 2. Create check-in IMMEDIATELY with placeholder location
       const newId = `s${Date.now()}`;
+      const now = new Date().toISOString();
+      const defaultCoords: [number, number] = [activeTrip.stops.at(-1)?.coordinates[0] ?? 39.9, activeTrip.stops.at(-1)?.coordinates[1] ?? 116.4];
+
       const newCheckIn: CheckIn = {
         id: newId,
-        locationName,
-        coordinates: [latitude, longitude],
-        timestamp: new Date().toISOString(),
+        locationName: '打卡点',
+        coordinates: defaultCoords,
+        timestamp: now,
         description: '快速打卡：记录这一刻！',
         transportation: 'walk',
-        photos: [
-          {
-            id: `p${Date.now()}`,
-            url: imageData,
-            caption: locationName,
-            location: [latitude, longitude],
-            timestamp: new Date().toISOString()
-          }
-        ]
+        photos: [{
+          id: `p${Date.now()}`,
+          url: imageData,
+          caption: '打卡点',
+          location: defaultCoords,
+          timestamp: now
+        }]
       };
 
-      const updatedTrips = trips.map(t => {
-        if (t.id === activeTripId) {
-          return { ...t, stops: [...t.stops, newCheckIn] };
-        }
-        return t;
-      });
-
-      setTrips(updatedTrips);
+      setTrips(prev => prev.map(t =>
+        t.id === activeTripId ? { ...t, stops: [...t.stops, newCheckIn] } : t
+      ));
       setActiveCheckInId(newId);
+      setIsQuickCheckingIn(false);
+      if (quickFileInputRef.current) quickFileInputRef.current.value = '';
+
+      // 3. Background: try to get real location and update
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            const locName = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+            setTrips(prev => prev.map(t => {
+              if (t.id !== activeTripId) return t;
+              return {
+                ...t,
+                stops: t.stops.map(s => {
+                  if (s.id !== newId) return s;
+                  return {
+                    ...s,
+                    locationName: locName,
+                    coordinates: [latitude, longitude] as [number, number],
+                    photos: s.photos.map(p => ({ ...p, caption: locName, location: [latitude, longitude] as [number, number] }))
+                  };
+                })
+              };
+            }));
+          },
+          () => { /* ignore error */ },
+          { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
+        );
+      }
     } catch (error) {
       console.error('Quick check-in error:', error);
-      alert('打卡失败，请重试。');
-    } finally {
       setIsQuickCheckingIn(false);
       if (quickFileInputRef.current) quickFileInputRef.current.value = '';
     }
