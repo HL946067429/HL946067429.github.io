@@ -25,7 +25,7 @@ import { CheckIn, Photo, Trip } from './types';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { getRoute } from './services/routingService';
-import { getAMapLocation, reverseGeocode, isAMapAvailable } from './services/amapService';
+import { getAMapLocation, getBrowserLocation, isAMapAvailable, preRequestLocationPermission } from './services/amapService';
 
 export default function App() {
   const [trips, setTrips] = useState<Trip[]>(MOCK_TRIPS);
@@ -67,6 +67,9 @@ export default function App() {
 
   const activeTrip = useMemo(() => trips.find(t => t.id === activeTripId) || trips[0], [trips, activeTripId]);
   const checkIns = activeTrip.stops;
+
+  // Pre-request location permission on app load so check-in is instant
+  useEffect(() => { preRequestLocationPermission(); }, []);
 
   // Fetch routes between stops when active trip changes
   useEffect(() => {
@@ -208,23 +211,14 @@ export default function App() {
         }));
       };
 
-      if (isAMapAvailable()) {
-        // China: use Gaode for fast positioning + address
-        getAMapLocation()
-          .then(loc => updateLocation(loc.latitude, loc.longitude, loc.address))
-          .catch(() => { /* ignore */ });
-      } else if (navigator.geolocation) {
-        // Overseas: browser geolocation
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            const { latitude, longitude } = position.coords;
-            const name = await reverseGeocode(latitude, longitude);
-            updateLocation(latitude, longitude, name);
-          },
-          () => { /* ignore */ },
-          { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
-        );
-      }
+      // Try AMap first (China), fall back to browser GPS
+      const locationPromise = isAMapAvailable()
+        ? getAMapLocation().catch(() => getBrowserLocation())
+        : getBrowserLocation();
+
+      locationPromise
+        .then(loc => updateLocation(loc.latitude, loc.longitude, loc.address))
+        .catch(() => { /* ignore - keep placeholder location */ });
     } catch (error) {
       console.error('Quick check-in error:', error);
       setIsQuickCheckingIn(false);

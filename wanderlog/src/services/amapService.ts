@@ -59,11 +59,12 @@ export async function getAMapLocation(): Promise<AMapLocation> {
   return new Promise((resolve, reject) => {
     AMap.plugin('AMap.Geolocation', () => {
       const geo = new AMap.Geolocation({
-        enableHighAccuracy: false,
-        timeout: 5000,
-        // Use IP positioning as fallback (very fast)
-        GeoLocationFirst: false,
+        enableHighAccuracy: true,
+        timeout: 8000,
+        // Try browser GPS first, fall back to IP if denied/timeout
+        GeoLocationFirst: true,
         useNative: true,
+        maximumAge: 60000,
       });
 
       geo.getCurrentPosition((status: string, result: any) => {
@@ -90,6 +91,62 @@ export async function getAMapLocation(): Promise<AMapLocation> {
       });
     });
   });
+}
+
+/**
+ * Get location using native browser Geolocation API.
+ * Works everywhere (overseas), triggers the browser permission prompt.
+ */
+export async function getBrowserLocation(): Promise<AMapLocation> {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Geolocation not supported'));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        const address = await reverseGeocode(latitude, longitude);
+        resolve({ latitude, longitude, address });
+      },
+      (err) => reject(err),
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+    );
+  });
+}
+
+/** Cached permission state */
+let permissionGranted = false;
+
+/**
+ * Pre-request location permission on app load.
+ * This way when user taps "check-in", no permission popup blocks the flow.
+ */
+export async function preRequestLocationPermission(): Promise<void> {
+  if (permissionGranted) return;
+
+  // Check permission state without triggering a prompt (Permissions API)
+  if (navigator.permissions) {
+    try {
+      const status = await navigator.permissions.query({ name: 'geolocation' });
+      if (status.state === 'granted') {
+        permissionGranted = true;
+        return;
+      }
+      if (status.state === 'denied') return; // Don't bother asking
+    } catch { /* Permissions API not supported, proceed */ }
+  }
+
+  // Trigger the permission prompt with a quick low-accuracy request
+  try {
+    await new Promise<void>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        () => { permissionGranted = true; resolve(); },
+        () => resolve(), // denied is ok, we tried
+        { enableHighAccuracy: false, timeout: 3000, maximumAge: Infinity }
+      );
+    });
+  } catch { /* ignore */ }
 }
 
 /**
