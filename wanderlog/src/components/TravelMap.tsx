@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { CheckIn, Photo } from '../types';
-import { Plane, Train, Car, Footprints, Bike, Camera, MapPin } from 'lucide-react';
+import { Plane, Train, Car, Footprints, Bike, Camera, MapPin, LocateFixed, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { getAMapLocation, getBrowserLocation, isAMapAvailable } from '../services/amapService';
 
 // Fix Leaflet icon issue
 // @ts-ignore
@@ -121,6 +122,35 @@ const MapUpdater = ({ center }: { center: [number, number] }) => {
   return null;
 };
 
+const myLocationIcon = L.divIcon({
+  className: 'my-location-icon',
+  html: `
+    <div class="relative flex items-center justify-center">
+      <div class="absolute w-10 h-10 bg-blue-500/20 rounded-full animate-ping"></div>
+      <div class="absolute w-6 h-6 bg-blue-500/15 rounded-full"></div>
+      <div class="w-3.5 h-3.5 bg-blue-500 rounded-full border-2 border-white shadow-lg"></div>
+    </div>
+  `,
+  iconSize: [14, 14],
+  iconAnchor: [7, 7],
+});
+
+const MyLocationMarker = ({ position }: { position: [number, number] | null }) => {
+  if (!position) return null;
+  return <Marker position={position} icon={myLocationIcon} zIndexOffset={900} />;
+};
+
+const FlyToLocation = ({ target, onDone }: { target: [number, number] | null, onDone: () => void }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (target) {
+      map.flyTo(target, 16, { duration: 1.2 });
+      onDone();
+    }
+  }, [target, map, onDone]);
+  return null;
+};
+
 // Check if coordinates are roughly in China
 const isInChina = (lat: number, lng: number): boolean => {
   return lat >= 3.86 && lat <= 53.55 && lng >= 73.66 && lng <= 135.05;
@@ -137,6 +167,25 @@ export const TravelMap: React.FC<TravelMapProps> = ({
   mapStyle = 'standard'
 }) => {
   const activeCheckIn = checkIns.find(c => c.id === activeCheckInId);
+  const [myLocation, setMyLocation] = useState<[number, number] | null>(null);
+  const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+
+  const handleLocateMe = useCallback(async () => {
+    if (isLocating) return;
+    setIsLocating(true);
+    try {
+      const loc = isAMapAvailable()
+        ? await getAMapLocation().catch(() => getBrowserLocation())
+        : await getBrowserLocation();
+      const pos: [number, number] = [loc.latitude, loc.longitude];
+      setMyLocation(pos);
+      setFlyTarget(pos);
+    } catch { /* ignore */ }
+    setIsLocating(false);
+  }, [isLocating]);
+
+  const clearFlyTarget = useCallback(() => setFlyTarget(null), []);
 
   // Determine if we should use China tiles based on the first check-in's coordinates
   const useChina = checkIns.length > 0 && isInChina(checkIns[0].coordinates[0], checkIns[0].coordinates[1]);
@@ -311,7 +360,25 @@ export const TravelMap: React.FC<TravelMapProps> = ({
         ))}
 
         {activeCheckIn && playbackIndex === null && <MapUpdater center={activeCheckIn.coordinates} />}
+
+        {/* My location blue dot */}
+        <MyLocationMarker position={myLocation} />
+        <FlyToLocation target={flyTarget} onDone={clearFlyTarget} />
       </MapContainer>
+
+      {/* Locate me button */}
+      <button
+        onClick={handleLocateMe}
+        disabled={isLocating}
+        className="absolute top-20 md:top-4 right-3 md:right-4 z-[1000] w-10 h-10 bg-white rounded-xl shadow-lg border border-black/5 flex items-center justify-center hover:bg-gray-50 active:scale-95 transition-all disabled:opacity-60"
+        title="定位到当前位置"
+      >
+        {isLocating ? (
+          <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+        ) : (
+          <LocateFixed className="w-5 h-5 text-blue-500" />
+        )}
+      </button>
 
       {/* Map Overlay Controls */}
       <div className="absolute bottom-24 md:bottom-6 left-3 right-3 md:left-6 md:right-6 z-[1000] flex flex-col gap-3 pointer-events-none">
