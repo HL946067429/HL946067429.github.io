@@ -15,7 +15,9 @@ import {
   Search,
   Trash2,
   X,
-  Loader2
+  Loader2,
+  Download,
+  AlertTriangle
 } from 'lucide-react';
 import { TravelMap } from './components/TravelMap';
 import { PhotoMosaic } from './components/PhotoMosaic';
@@ -45,7 +47,7 @@ export default function App() {
   // Modal States
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [mapStyle, setMapStyle] = useState<'standard' | 'satellite' | 'terrain' | 'dark'>('standard');
-  const [autoPlay, setAutoPlay] = useState(true);
+  const [autoPlay, setAutoPlay] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -835,12 +837,12 @@ export default function App() {
                 { id: 'terrain', name: '地形' },
                 { id: 'dark', name: '暗色' }
               ].map(style => (
-                <button 
-                  key={style.id} 
+                <button
+                  key={style.id}
                   onClick={() => setMapStyle(style.id as any)}
                   className={`p-4 rounded-2xl border transition-all text-sm font-bold ${
-                    mapStyle === style.id 
-                      ? 'border-[#F27D26] bg-[#F27D26]/5 text-[#F27D26]' 
+                    mapStyle === style.id
+                      ? 'border-[#F27D26] bg-[#F27D26]/5 text-[#F27D26]'
                       : 'border-black/5 hover:border-black/20'
                   }`}
                 >
@@ -853,16 +855,55 @@ export default function App() {
             <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400">偏好设置</h4>
             <div className="flex items-center justify-between p-4 bg-black/5 rounded-2xl">
               <span className="text-sm font-bold">自动播放路线</span>
-              <button 
+              <button
                 onClick={() => setAutoPlay(!autoPlay)}
                 className={`w-10 h-5 rounded-full relative transition-colors ${autoPlay ? 'bg-[#F27D26]' : 'bg-gray-300'}`}
               >
-                <motion.div 
+                <motion.div
                   animate={{ x: autoPlay ? 22 : 2 }}
-                  className="absolute top-1 w-3 h-3 bg-white rounded-full" 
+                  className="absolute top-1 w-3 h-3 bg-white rounded-full"
                 />
               </button>
             </div>
+          </div>
+          <div className="space-y-4">
+            <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400">数据管理</h4>
+            <button
+              onClick={() => {
+                const data = JSON.stringify(trips, null, 2);
+                const blob = new Blob([data], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `wanderlog-${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="w-full flex items-center gap-3 p-4 bg-black/5 rounded-2xl active:bg-black/10 transition-colors"
+            >
+              <Download className="w-5 h-5 text-gray-500" />
+              <div className="text-left">
+                <span className="text-sm font-bold block">导出数据</span>
+                <span className="text-[11px] text-gray-400">将所有旅程数据保存为 JSON 文件</span>
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                if (window.confirm('确定要清除所有旅程数据吗？此操作不可撤销。')) {
+                  setTrips([]);
+                  setActiveTripId('');
+                  setActiveCheckInId(null);
+                  setIsSettingsOpen(false);
+                }
+              }}
+              className="w-full flex items-center gap-3 p-4 bg-red-50 rounded-2xl active:bg-red-100 transition-colors"
+            >
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+              <div className="text-left">
+                <span className="text-sm font-bold text-red-600 block">清除所有数据</span>
+                <span className="text-[11px] text-red-400">删除全部旅程、打卡和照片记录</span>
+              </div>
+            </button>
           </div>
         </div>
       </Modal>
