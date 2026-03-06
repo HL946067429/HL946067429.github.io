@@ -50,9 +50,10 @@ jobs:
         working-directory: travel-memories
         run: pnpm build
 
-      # Merge outputs: copy travel-memories dist into VuePress dist
+      # Merge outputs: replace VuePress-generated travel-memories page with React app
       - name: Merge Build Outputs
         run: |
+          rm -rf .vuepress/dist/travel-memories
           cp -r travel-memories/dist .vuepress/dist/travel-memories
           echo "--- Final output structure ---"
           ls -la .vuepress/dist/
