@@ -1,4 +1,4 @@
-name: Deploy VuePress + Travel Memories to Pages
+name: Deploy VuePress + Travel Memories + WanderLog to Pages
 
 on:
   push:
@@ -50,16 +50,32 @@ jobs:
         working-directory: travel-memories
         run: pnpm build
 
-      # Merge outputs: replace VuePress-generated travel-memories page with React app
+      # Build WanderLog app
+      - name: Install WanderLog Dependencies
+        working-directory: wanderlog
+        run: npm install
+
+      - name: Build WanderLog
+        working-directory: wanderlog
+        run: npm run build
+
+      # Merge all outputs
       - name: Merge Build Outputs
         run: |
+          # Travel Memories
           rm -rf .vuepress/dist/travel-memories
           cp -r travel-memories/dist .vuepress/dist/travel-memories
-          # SPA fallback: copy index.html as 404.html so client-side routing works
           cp .vuepress/dist/travel-memories/index.html .vuepress/dist/travel-memories/404.html
+
+          # WanderLog
+          rm -rf .vuepress/dist/wanderlog
+          cp -r wanderlog/dist .vuepress/dist/wanderlog
+          cp .vuepress/dist/wanderlog/index.html .vuepress/dist/wanderlog/404.html
+
           echo "--- Final output structure ---"
           ls -la .vuepress/dist/
           ls -la .vuepress/dist/travel-memories/
+          ls -la .vuepress/dist/wanderlog/
 
       - name: Upload Artifact
         if: success()

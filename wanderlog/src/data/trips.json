@@ -1,0 +1,217 @@
+[
+  {
+    "id": "trip-1",
+    "title": "北京深度游",
+    "description": "五月的北京，探寻古都魅力与现代气息。",
+    "coverUrl": "https://picsum.photos/seed/beijing-trip/800/400",
+    "stops": [
+      {
+        "id": "s1",
+        "locationName": "首都国际机场",
+        "coordinates": [40.0799, 116.6031],
+        "timestamp": "2024-05-01T08:00:00Z",
+        "description": "抵达北京，开启旅程！",
+        "transportation": "flight",
+        "photos": [
+          { "id": "p0-1", "url": "https://picsum.photos/seed/airport-1/800/600", "caption": "降落北京", "location": [40.0799, 116.6031], "timestamp": "2024-05-01T08:15:00Z" },
+          { "id": "p0-2", "url": "https://picsum.photos/seed/airport-2/800/600", "caption": "机场大厅", "location": [40.0799, 116.6031], "timestamp": "2024-05-01T08:30:00Z" },
+          { "id": "p0-3", "url": "https://picsum.photos/seed/airport-3/800/600", "caption": "行李提取", "location": [40.0799, 116.6031], "timestamp": "2024-05-01T08:45:00Z" },
+          { "id": "p0-4", "url": "https://picsum.photos/seed/airport-4/800/600", "caption": "机场快轨", "location": [40.0799, 116.6031], "timestamp": "2024-05-01T09:00:00Z" },
+          { "id": "p0-5", "url": "https://picsum.photos/seed/airport-5/800/600", "caption": "第一印象", "location": [40.0799, 116.6031], "timestamp": "2024-05-01T09:15:00Z" }
+        ]
+      },
+      {
+        "id": "s2",
+        "locationName": "故宫博物院",
+        "coordinates": [39.9163, 116.3972],
+        "timestamp": "2024-05-01T10:30:00Z",
+        "description": "红墙金瓦，岁月静好。故宫的春天总是那么迷人。",
+        "transportation": "car",
+        "photos": [
+          { "id": "p1", "url": "https://picsum.photos/seed/forbidden-city-1/800/600", "caption": "故宫角楼", "location": [39.9163, 116.3972], "timestamp": "2024-05-01T11:00:00Z" },
+          { "id": "p1-2", "url": "https://picsum.photos/seed/forbidden-city-2/800/600", "caption": "故宫大殿", "location": [39.9163, 116.3972], "timestamp": "2024-05-01T11:15:00Z" },
+          { "id": "p1-3", "url": "https://picsum.photos/seed/forbidden-city-3/800/600", "caption": "红墙影", "location": [39.9163, 116.3972], "timestamp": "2024-05-01T11:30:00Z" },
+          { "id": "p1-4", "url": "https://picsum.photos/seed/forbidden-city-4/800/600", "caption": "御花园", "location": [39.9163, 116.3972], "timestamp": "2024-05-01T11:45:00Z" },
+          { "id": "p1-5", "url": "https://picsum.photos/seed/forbidden-city-5/800/600", "caption": "故宫猫", "location": [39.9163, 116.3972], "timestamp": "2024-05-01T12:00:00Z" },
+          { "id": "p1-6", "url": "https://picsum.photos/seed/forbidden-city-6/800/600", "caption": "金水桥", "location": [39.9163, 116.3972], "timestamp": "2024-05-01T12:15:00Z" },
+          { "id": "p1-7", "url": "https://picsum.photos/seed/forbidden-city-7/800/600", "caption": "午门", "location": [39.9163, 116.3972], "timestamp": "2024-05-01T12:30:00Z" },
+          { "id": "p1-8", "url": "https://picsum.photos/seed/forbidden-city-8/800/600", "caption": "太和殿", "location": [39.9163, 116.3972], "timestamp": "2024-05-01T12:45:00Z" }
+        ]
+      },
+      {
+        "id": "s3",
+        "locationName": "景山公园",
+        "coordinates": [39.9231, 116.3967],
+        "timestamp": "2024-05-01T14:00:00Z",
+        "description": "登上万春亭，俯瞰故宫全景。",
+        "transportation": "walk",
+        "photos": [
+          { "id": "p2", "url": "https://picsum.photos/seed/jingshan-1/800/600", "caption": "故宫全景", "location": [39.9231, 116.3967], "timestamp": "2024-05-01T14:30:00Z" },
+          { "id": "p2-2", "url": "https://picsum.photos/seed/jingshan-2/800/600", "caption": "万春亭", "location": [39.9231, 116.3967], "timestamp": "2024-05-01T14:45:00Z" },
+          { "id": "p2-3", "url": "https://picsum.photos/seed/jingshan-3/800/600", "caption": "俯瞰京城", "location": [39.9231, 116.3967], "timestamp": "2024-05-01T15:00:00Z" },
+          { "id": "p2-4", "url": "https://picsum.photos/seed/jingshan-4/800/600", "caption": "古树", "location": [39.9231, 116.3967], "timestamp": "2024-05-01T15:15:00Z" },
+          { "id": "p2-5", "url": "https://picsum.photos/seed/jingshan-5/800/600", "caption": "牡丹花开", "location": [39.9231, 116.3967], "timestamp": "2024-05-01T15:30:00Z" },
+          { "id": "p2-6", "url": "https://picsum.photos/seed/jingshan-6/800/600", "caption": "红墙绿瓦", "location": [39.9231, 116.3967], "timestamp": "2024-05-01T15:45:00Z" }
+        ]
+      },
+      {
+        "id": "s4",
+        "locationName": "王府井步行街",
+        "coordinates": [39.9118, 116.4113],
+        "timestamp": "2024-05-01T18:00:00Z",
+        "description": "繁华的商业街，品尝北京小吃。",
+        "transportation": "bike",
+        "photos": [
+          { "id": "p4-1", "url": "https://picsum.photos/seed/wangfujing-1/800/600", "caption": "王府井夜景", "location": [39.9118, 116.4113], "timestamp": "2024-05-01T18:30:00Z" },
+          { "id": "p4-2", "url": "https://picsum.photos/seed/wangfujing-2/800/600", "caption": "北京小吃", "location": [39.9118, 116.4113], "timestamp": "2024-05-01T18:45:00Z" },
+          { "id": "p4-3", "url": "https://picsum.photos/seed/wangfujing-3/800/600", "caption": "老字号", "location": [39.9118, 116.4113], "timestamp": "2024-05-01T19:00:00Z" },
+          { "id": "p4-4", "url": "https://picsum.photos/seed/wangfujing-4/800/600", "caption": "书店一角", "location": [39.9118, 116.4113], "timestamp": "2024-05-01T19:15:00Z" },
+          { "id": "p4-5", "url": "https://picsum.photos/seed/wangfujing-5/800/600", "caption": "街头艺人", "location": [39.9118, 116.4113], "timestamp": "2024-05-01T19:30:00Z" },
+          { "id": "p4-6", "url": "https://picsum.photos/seed/wangfujing-6/800/600", "caption": "霓虹灯下", "location": [39.9118, 116.4113], "timestamp": "2024-05-01T19:45:00Z" }
+        ]
+      },
+      {
+        "id": "s5",
+        "locationName": "颐和园",
+        "coordinates": [39.9997, 116.2755],
+        "timestamp": "2024-05-02T09:00:00Z",
+        "description": "昆明湖畔，长廊漫步。",
+        "transportation": "train",
+        "photos": [
+          { "id": "p3", "url": "https://picsum.photos/seed/summer-palace-1/800/600", "caption": "十七孔桥", "location": [39.9997, 116.2755], "timestamp": "2024-05-02T10:00:00Z" },
+          { "id": "p3-2", "url": "https://picsum.photos/seed/summer-palace-2/800/600", "caption": "佛香阁", "location": [39.9997, 116.2755], "timestamp": "2024-05-02T10:15:00Z" },
+          { "id": "p3-3", "url": "https://picsum.photos/seed/summer-palace-3/800/600", "caption": "昆明湖", "location": [39.9997, 116.2755], "timestamp": "2024-05-02T10:30:00Z" },
+          { "id": "p3-4", "url": "https://picsum.photos/seed/summer-palace-4/800/600", "caption": "苏州街", "location": [39.9997, 116.2755], "timestamp": "2024-05-02T10:45:00Z" },
+          { "id": "p3-5", "url": "https://picsum.photos/seed/summer-palace-5/800/600", "caption": "长廊", "location": [39.9997, 116.2755], "timestamp": "2024-05-02T11:00:00Z" },
+          { "id": "p3-6", "url": "https://picsum.photos/seed/summer-palace-6/800/600", "caption": "画中游", "location": [39.9997, 116.2755], "timestamp": "2024-05-02T11:15:00Z" },
+          { "id": "p3-7", "url": "https://picsum.photos/seed/summer-palace-7/800/600", "caption": "石舫", "location": [39.9997, 116.2755], "timestamp": "2024-05-02T11:30:00Z" },
+          { "id": "p3-8", "url": "https://picsum.photos/seed/summer-palace-8/800/600", "caption": "西堤", "location": [39.9997, 116.2755], "timestamp": "2024-05-02T11:45:00Z" }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "trip-2",
+    "title": "西安古城行",
+    "description": "穿越千年，感受十三朝古都的厚重历史。",
+    "coverUrl": "https://picsum.photos/seed/xian-trip/800/400",
+    "stops": [
+      {
+        "id": "x1",
+        "locationName": "西安北站",
+        "coordinates": [34.3770, 108.9398],
+        "timestamp": "2024-05-10T12:00:00Z",
+        "description": "高铁抵达西安。",
+        "transportation": "train",
+        "photos": [
+          { "id": "px1-1", "url": "https://picsum.photos/seed/xian-station/800/600", "caption": "西安北站", "location": [34.3770, 108.9398], "timestamp": "2024-05-10T12:15:00Z" },
+          { "id": "px1-2", "url": "https://picsum.photos/seed/xian-station-2/800/600", "caption": "出站口", "location": [34.3770, 108.9398], "timestamp": "2024-05-10T12:30:00Z" },
+          { "id": "px1-3", "url": "https://picsum.photos/seed/xian-station-3/800/600", "caption": "西安印象", "location": [34.3770, 108.9398], "timestamp": "2024-05-10T12:45:00Z" },
+          { "id": "px1-4", "url": "https://picsum.photos/seed/xian-station-4/800/600", "caption": "广场喷泉", "location": [34.3770, 108.9398], "timestamp": "2024-05-10T13:00:00Z" }
+        ]
+      },
+      {
+        "id": "x2",
+        "locationName": "大雁塔",
+        "coordinates": [34.2181, 108.9607],
+        "timestamp": "2024-05-10T15:00:00Z",
+        "description": "千年古都，一眼万年。",
+        "transportation": "car",
+        "photos": [
+          { "id": "p4", "url": "https://picsum.photos/seed/xian-pagoda/800/600", "caption": "大雁塔全景", "location": [34.2181, 108.9607], "timestamp": "2024-05-10T16:00:00Z" },
+          { "id": "p4-2", "url": "https://picsum.photos/seed/xian-pagoda-2/800/600", "caption": "玄奘像", "location": [34.2181, 108.9607], "timestamp": "2024-05-10T16:15:00Z" },
+          { "id": "p4-3", "url": "https://picsum.photos/seed/xian-pagoda-3/800/600", "caption": "大慈恩寺", "location": [34.2181, 108.9607], "timestamp": "2024-05-10T16:30:00Z" },
+          { "id": "p4-4", "url": "https://picsum.photos/seed/xian-pagoda-4/800/600", "caption": "落日余晖", "location": [34.2181, 108.9607], "timestamp": "2024-05-10T16:45:00Z" },
+          { "id": "p4-5", "url": "https://picsum.photos/seed/xian-pagoda-5/800/600", "caption": "音乐喷泉", "location": [34.2181, 108.9607], "timestamp": "2024-05-10T17:00:00Z" },
+          { "id": "p4-6", "url": "https://picsum.photos/seed/xian-pagoda-6/800/600", "caption": "古塔影", "location": [34.2181, 108.9607], "timestamp": "2024-05-10T17:15:00Z" }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "trip-3",
+    "title": "魔都上海行",
+    "description": "在外滩看万国建筑，在武康路漫步，感受上海的摩登与怀旧。",
+    "coverUrl": "https://picsum.photos/seed/shanghai-trip/800/400",
+    "stops": [
+      {
+        "id": "sh1",
+        "locationName": "外滩",
+        "coordinates": [31.2334, 121.4921],
+        "timestamp": "2024-06-01T19:00:00Z",
+        "description": "外滩的夜景永远让人着迷。",
+        "transportation": "walk",
+        "photos": [
+          { "id": "psh1-1", "url": "https://picsum.photos/seed/shanghai-bund-1/800/600", "caption": "陆家嘴三件套", "location": [31.2334, 121.4921], "timestamp": "2024-06-01T19:30:00Z" },
+          { "id": "psh1-2", "url": "https://picsum.photos/seed/shanghai-bund-2/800/600", "caption": "万国建筑博览", "location": [31.2334, 121.4921], "timestamp": "2024-06-01T19:45:00Z" },
+          { "id": "psh1-3", "url": "https://picsum.photos/seed/shanghai-bund-3/800/600", "caption": "黄浦江影", "location": [31.2334, 121.4921], "timestamp": "2024-06-01T20:00:00Z" },
+          { "id": "psh1-4", "url": "https://picsum.photos/seed/shanghai-bund-4/800/600", "caption": "和平饭店", "location": [31.2334, 121.4921], "timestamp": "2024-06-01T20:15:00Z" },
+          { "id": "psh1-5", "url": "https://picsum.photos/seed/shanghai-bund-5/800/600", "caption": "江风拂面", "location": [31.2334, 121.4921], "timestamp": "2024-06-01T20:30:00Z" },
+          { "id": "psh1-6", "url": "https://picsum.photos/seed/shanghai-bund-6/800/600", "caption": "外滩钟声", "location": [31.2334, 121.4921], "timestamp": "2024-06-01T20:45:00Z" },
+          { "id": "psh1-7", "url": "https://picsum.photos/seed/shanghai-bund-7/800/600", "caption": "轮渡过江", "location": [31.2334, 121.4921], "timestamp": "2024-06-01T21:00:00Z" },
+          { "id": "psh1-8", "url": "https://picsum.photos/seed/shanghai-bund-8/800/600", "caption": "霓虹闪烁", "location": [31.2334, 121.4921], "timestamp": "2024-06-01T21:15:00Z" }
+        ]
+      },
+      {
+        "id": "sh2",
+        "locationName": "武康大楼",
+        "coordinates": [31.2045, 121.4357],
+        "timestamp": "2024-06-02T14:00:00Z",
+        "description": "经典的法式建筑，上海的网红打卡地。",
+        "transportation": "bike",
+        "photos": [
+          { "id": "psh2-1", "url": "https://picsum.photos/seed/shanghai-wukang-1/800/600", "caption": "武康大楼全景", "location": [31.2045, 121.4357], "timestamp": "2024-06-02T14:30:00Z" },
+          { "id": "psh2-2", "url": "https://picsum.photos/seed/shanghai-wukang-2/800/600", "caption": "街角咖啡店", "location": [31.2045, 121.4357], "timestamp": "2024-06-02T15:00:00Z" },
+          { "id": "psh2-3", "url": "https://picsum.photos/seed/shanghai-wukang-3/800/600", "caption": "法租界漫步", "location": [31.2045, 121.4357], "timestamp": "2024-06-02T15:30:00Z" },
+          { "id": "psh2-4", "url": "https://picsum.photos/seed/shanghai-wukang-4/800/600", "caption": "老洋房细节", "location": [31.2045, 121.4357], "timestamp": "2024-06-02T16:00:00Z" },
+          { "id": "psh2-5", "url": "https://picsum.photos/seed/shanghai-wukang-5/800/600", "caption": "梧桐树影", "location": [31.2045, 121.4357], "timestamp": "2024-06-02T16:30:00Z" },
+          { "id": "psh2-6", "url": "https://picsum.photos/seed/shanghai-wukang-6/800/600", "caption": "武康路漫步", "location": [31.2045, 121.4357], "timestamp": "2024-06-02T17:00:00Z" }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "trip-4",
+    "title": "成都安逸时光",
+    "description": "在成都，时间是用来浪费的。吃火锅，看熊猫，感受最地道的慢生活。",
+    "coverUrl": "https://picsum.photos/seed/chengdu-trip/800/400",
+    "stops": [
+      {
+        "id": "cd1",
+        "locationName": "成都大熊猫繁育研究基地",
+        "coordinates": [30.7335, 104.1441],
+        "timestamp": "2024-07-01T09:00:00Z",
+        "description": "早起看滚滚，心都要化了。",
+        "transportation": "car",
+        "photos": [
+          { "id": "pcd1-1", "url": "https://picsum.photos/seed/panda-1/800/600", "caption": "大熊猫吃竹子", "location": [30.7335, 104.1441], "timestamp": "2024-07-01T09:30:00Z" },
+          { "id": "pcd1-2", "url": "https://picsum.photos/seed/panda-2/800/600", "caption": "爬树的小熊猫", "location": [30.7335, 104.1441], "timestamp": "2024-07-01T10:00:00Z" },
+          { "id": "pcd1-3", "url": "https://picsum.photos/seed/panda-3/800/600", "caption": "熊猫幼崽", "location": [30.7335, 104.1441], "timestamp": "2024-07-01T10:30:00Z" },
+          { "id": "pcd1-4", "url": "https://picsum.photos/seed/panda-4/800/600", "caption": "排排坐", "location": [30.7335, 104.1441], "timestamp": "2024-07-01T11:00:00Z" },
+          { "id": "pcd1-5", "url": "https://picsum.photos/seed/panda-5/800/600", "caption": "午睡时光", "location": [30.7335, 104.1441], "timestamp": "2024-07-01T11:30:00Z" },
+          { "id": "pcd1-6", "url": "https://picsum.photos/seed/panda-6/800/600", "caption": "熊猫基地的早晨", "location": [30.7335, 104.1441], "timestamp": "2024-07-01T11:45:00Z" },
+          { "id": "pcd1-7", "url": "https://picsum.photos/seed/panda-7/800/600", "caption": "可爱的背影", "location": [30.7335, 104.1441], "timestamp": "2024-07-01T12:00:00Z" },
+          { "id": "pcd1-8", "url": "https://picsum.photos/seed/panda-8/800/600", "caption": "竹林深处", "location": [30.7335, 104.1441], "timestamp": "2024-07-01T12:15:00Z" }
+        ]
+      },
+      {
+        "id": "cd2",
+        "locationName": "宽窄巷子",
+        "coordinates": [30.6635, 104.0529],
+        "timestamp": "2024-07-01T15:00:00Z",
+        "description": "老成都的缩影，掏耳朵、喝盖碗茶，好不惬意。",
+        "transportation": "train",
+        "photos": [
+          { "id": "pcd2-1", "url": "https://picsum.photos/seed/kuanzhai-1/800/600", "caption": "宽巷子正门", "location": [30.6635, 104.0529], "timestamp": "2024-07-01T15:30:00Z" },
+          { "id": "pcd2-2", "url": "https://picsum.photos/seed/kuanzhai-2/800/600", "caption": "盖碗茶", "location": [30.6635, 104.0529], "timestamp": "2024-07-01T16:00:00Z" },
+          { "id": "pcd2-3", "url": "https://picsum.photos/seed/kuanzhai-3/800/600", "caption": "川剧变脸", "location": [30.6635, 104.0529], "timestamp": "2024-07-01T16:30:00Z" },
+          { "id": "pcd2-4", "url": "https://picsum.photos/seed/kuanzhai-4/800/600", "caption": "掏耳朵体验", "location": [30.6635, 104.0529], "timestamp": "2024-07-01T17:00:00Z" },
+          { "id": "pcd2-5", "url": "https://picsum.photos/seed/kuanzhai-5/800/600", "caption": "巷子里的猫", "location": [30.6635, 104.0529], "timestamp": "2024-07-01T17:30:00Z" },
+          { "id": "pcd2-6", "url": "https://picsum.photos/seed/kuanzhai-6/800/600", "caption": "古色古香", "location": [30.6635, 104.0529], "timestamp": "2024-07-01T17:45:00Z" },
+          { "id": "pcd2-7", "url": "https://picsum.photos/seed/kuanzhai-7/800/600", "caption": "成都慢生活", "location": [30.6635, 104.0529], "timestamp": "2024-07-01T18:00:00Z" },
+          { "id": "pcd2-8", "url": "https://picsum.photos/seed/kuanzhai-8/800/600", "caption": "夜色初上", "location": [30.6635, 104.0529], "timestamp": "2024-07-01T18:15:00Z" }
+        ]
+      }
+    ]
+  }
+]
