@@ -208,7 +208,7 @@ export const TravelMap: React.FC<TravelMapProps> = ({
   }
 
   return (
-    <div className="w-full h-full relative rounded-2xl overflow-hidden shadow-2xl border border-black/5">
+    <div className="w-full h-full relative rounded-none md:rounded-2xl overflow-hidden md:shadow-2xl md:border md:border-black/5">
       <MapContainer 
         center={checkIns[0]?.coordinates || [39.9163, 116.3972]} 
         zoom={activeCheckInId ? 14 : 11} 
@@ -302,42 +302,43 @@ export const TravelMap: React.FC<TravelMapProps> = ({
       </MapContainer>
 
       {/* Map Overlay Controls */}
-      <div className="absolute bottom-6 left-6 right-6 z-[1000] flex flex-col gap-4 pointer-events-none">
+      <div className="absolute bottom-24 md:bottom-6 left-3 right-3 md:left-6 md:right-6 z-[1000] flex flex-col gap-3 pointer-events-none">
         {playbackIndex !== null && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="w-full bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-black/5 pointer-events-auto"
+            className="w-full bg-white/95 backdrop-blur-xl p-3 md:p-4 rounded-xl md:rounded-2xl shadow-xl border border-black/5 pointer-events-auto"
           >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-[#F27D26] uppercase tracking-widest">路线回放中</span>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-bold text-[#F27D26] tracking-wider">路线回放中</span>
               <span className="text-[10px] font-bold text-gray-400">
-                第 {playbackIndex + 1} / {checkIns.length - 1} 段
+                {playbackIndex + 1} / {checkIns.length - 1}
               </span>
             </div>
-            <div className="w-full h-1.5 bg-black/5 rounded-full overflow-hidden">
-              <motion.div 
+            <div className="w-full h-1 md:h-1.5 bg-black/5 rounded-full overflow-hidden">
+              <motion.div
                 className="h-full bg-[#F27D26]"
                 initial={{ width: 0 }}
                 animate={{ width: `${((playbackIndex + playbackProgress) / (checkIns.length - 1)) * 100}%` }}
                 transition={{ duration: 0.3 }}
               />
             </div>
-            <div className="flex justify-between mt-2">
+            <div className="flex justify-between mt-1.5">
               <span className="text-[10px] font-bold truncate max-w-[40%]">{checkIns[playbackIndex].locationName}</span>
               <span className="text-[10px] font-bold truncate max-w-[40%] text-right">{checkIns[playbackIndex + 1].locationName}</span>
             </div>
           </motion.div>
         )}
 
-        <div className="bg-white/90 backdrop-blur-md p-2 md:p-3 rounded-xl shadow-xl border border-black/5 pointer-events-auto w-fit">
-          <div className="flex items-center gap-2 md:gap-3">
-            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-black flex items-center justify-center text-white shrink-0">
-              <MapPin className="w-4 h-4 md:w-5 md:h-5" />
+        {/* Current location indicator - desktop only */}
+        <div className="hidden md:block bg-white/90 backdrop-blur-md p-3 rounded-xl shadow-xl border border-black/5 pointer-events-auto w-fit">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center text-white shrink-0">
+              <MapPin className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-[8px] md:text-[10px] uppercase tracking-widest text-gray-400 font-bold truncate">当前位置</p>
-              <p className="text-xs md:text-sm font-bold truncate">{activeCheckIn?.locationName || '选择一个足迹'}</p>
+              <p className="text-[10px] uppercase tracking-widest text-gray-400 font-bold truncate">当前位置</p>
+              <p className="text-sm font-bold truncate">{activeCheckIn?.locationName || '选择一个足迹'}</p>
             </div>
           </div>
         </div>

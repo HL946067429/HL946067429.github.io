@@ -153,28 +153,47 @@ export default function App() {
 
     setIsQuickCheckingIn(true);
     try {
-      // 1. Get location
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        });
-      });
-
-      const { latitude, longitude } = position.coords;
-
-      // 2. Reverse geocode
-      const geoResponse = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
-      const geoData = await geoResponse.json();
-      const locationName = geoData.display_name.split(',')[0] || geoData.name || '未知地点';
-
-      // 3. Read image
+      // 1. Read image first (always succeeds)
       const reader = new FileReader();
       const imageData = await new Promise<string>((resolve) => {
         reader.onloadend = () => resolve(reader.result as string);
         reader.readAsDataURL(file);
       });
+
+      // 2. Try to get location (with fallback)
+      let latitude = 39.9;
+      let longitude = 116.4;
+      let locationName = '未知地点';
+
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 8000,
+            maximumAge: 60000
+          });
+        });
+        latitude = position.coords.latitude;
+        longitude = position.coords.longitude;
+
+        // 3. Reverse geocode with timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        try {
+          const geoResponse = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+            { signal: controller.signal }
+          );
+          clearTimeout(timeoutId);
+          const geoData = await geoResponse.json();
+          locationName = geoData.display_name?.split(',')[0] || geoData.name || '当前位置';
+        } catch {
+          clearTimeout(timeoutId);
+          locationName = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+        }
+      } catch {
+        // Geolocation failed, use defaults
+      }
 
       // 4. Create check-in
       const newId = `s${Date.now()}`;
@@ -207,7 +226,7 @@ export default function App() {
       setActiveCheckInId(newId);
     } catch (error) {
       console.error('Quick check-in error:', error);
-      alert('快速打卡失败，请确保已开启定位权限。');
+      alert('打卡失败，请重试。');
     } finally {
       setIsQuickCheckingIn(false);
       if (quickFileInputRef.current) quickFileInputRef.current.value = '';
@@ -363,20 +382,31 @@ export default function App() {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#f5f2ed] flex-col md:flex-row">
       {/* Mobile Header */}
-      <header className="md:hidden flex items-center justify-between p-4 bg-white/80 backdrop-blur-md border-b border-black/5 z-30">
-        <h1 className="text-xl font-serif italic tracking-tight">WanderLog</h1>
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => setView(view === 'map' ? 'gallery' : 'map')}
-            className="p-2 hover:bg-black/5 rounded-full transition-colors"
-          >
-            {view === 'map' ? <ImageIcon className="w-5 h-5" /> : <MapIcon className="w-5 h-5" />}
-          </button>
-          <button 
+      <header className="md:hidden flex items-center justify-between px-4 py-2.5 bg-white/90 backdrop-blur-xl border-b border-black/5 z-30 safe-top">
+        <div className="flex items-center gap-2.5">
+          <button
             onClick={() => setIsSidebarOpen(true)}
-            className="p-2 hover:bg-black/5 rounded-full transition-colors"
+            className="p-2 -ml-1 active:bg-black/5 rounded-xl transition-colors"
           >
             <Navigation className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-base font-bold tracking-tight leading-tight">WanderLog</h1>
+            <p className="text-[10px] text-gray-400 font-medium truncate max-w-[140px]">{activeTrip.title}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setView('map')}
+            className={`p-2 rounded-xl transition-colors ${view === 'map' ? 'bg-black text-white' : 'text-gray-400 active:bg-black/5'}`}
+          >
+            <MapIcon className="w-4.5 h-4.5" />
+          </button>
+          <button
+            onClick={() => setView('gallery')}
+            className={`p-2 rounded-xl transition-colors ${view === 'gallery' ? 'bg-black text-white' : 'text-gray-400 active:bg-black/5'}`}
+          >
+            <ImageIcon className="w-4.5 h-4.5" />
           </button>
         </div>
       </header>
@@ -504,32 +534,32 @@ export default function App() {
               </div>
             </div>
 
-            <footer className="p-6 border-t border-black/5 bg-white/80 space-y-3">
-              <input 
-                type="file" 
+            <footer className="p-4 md:p-6 border-t border-black/5 bg-white/90 backdrop-blur-xl space-y-2.5 safe-bottom">
+              <input
+                type="file"
                 ref={quickFileInputRef}
                 onChange={handleQuickCheckIn}
                 accept="image/*"
                 capture="environment"
                 className="hidden"
               />
-              <button 
+              <button
                 onClick={() => quickFileInputRef.current?.click()}
                 disabled={isQuickCheckingIn}
-                className="w-full bg-[#F27D26] text-white py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#d96d1d] transition-all active:scale-[0.98] shadow-xl shadow-[#F27D26]/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-[#F27D26] text-white py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.97] transition-all shadow-lg shadow-[#F27D26]/15 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isQuickCheckingIn ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <Camera className="w-5 h-5" />
+                  <Camera className="w-4 h-4" />
                 )}
-                {isQuickCheckingIn ? '正在定位并上传...' : '快速拍照打卡'}
+                {isQuickCheckingIn ? '定位上传中...' : '快速拍照打卡'}
               </button>
-              <button 
+              <button
                 onClick={() => setIsAddOpen(true)}
-                className="w-full bg-black text-white py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-800 transition-all active:scale-[0.98] shadow-xl shadow-black/10"
+                className="w-full bg-black text-white py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.97] transition-all shadow-lg shadow-black/10"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-4 h-4" />
                 开启新旅程
               </button>
             </footer>
@@ -573,9 +603,9 @@ export default function App() {
         </nav>
 
         {/* View Container */}
-        <div className="flex-1 p-4 md:p-8 md:pt-24 h-full overflow-hidden relative">
+        <div className="flex-1 p-0 md:p-8 md:pt-24 h-full overflow-hidden relative">
           {isRouting && (
-            <div className="absolute top-28 left-1/2 -translate-x-1/2 z-30 bg-black/80 backdrop-blur-md text-white px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
+            <div className="absolute top-14 md:top-28 left-1/2 -translate-x-1/2 z-30 bg-black/80 backdrop-blur-md text-white px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[10px] font-bold tracking-widest flex items-center gap-2">
               <div className="w-2 h-2 bg-[#F27D26] rounded-full animate-ping" />
               正在规划路线...
             </div>
@@ -601,39 +631,36 @@ export default function App() {
                 />
               </motion.div>
             ) : (
-              <motion.div 
+              <motion.div
                 key="gallery"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="w-full h-full overflow-y-auto pr-2 md:pr-4"
+                className="w-full h-full overflow-y-auto px-3 pt-3 pb-6 md:px-0 md:pt-0 md:pb-0"
               >
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-5">
                   {allPhotos.map((photo, i) => (
-                    <motion.div 
+                    <motion.div
                       key={photo.id}
-                      initial={{ opacity: 0, y: 20 }}
+                      initial={{ opacity: 0, y: 16 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="group relative aspect-[3/4] rounded-2xl overflow-hidden shadow-lg cursor-pointer"
+                      transition={{ delay: i * 0.03 }}
+                      onClick={() => setSelectedPhoto(photo)}
+                      className="group relative aspect-[3/4] rounded-xl md:rounded-2xl overflow-hidden shadow-md cursor-pointer active:scale-[0.97] transition-transform"
                     >
-                      <img 
-                        src={photo.url} 
-                        alt={photo.caption} 
+                      <img
+                        src={photo.url}
+                        alt={photo.caption}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                         referrerPolicy="no-referrer"
+                        loading="lazy"
                       />
-                      <div 
-                        onClick={() => setSelectedPhoto(photo)}
-                        className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-4 md:p-6 flex flex-col justify-end"
-                      >
-                        <p className="text-white font-bold text-xs md:text-sm">{photo.caption}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <Camera className="w-3 h-3 text-white/60" />
-                          <span className="text-[10px] text-white/60 uppercase tracking-widest">
-                            {format(new Date(photo.timestamp), 'yyyy.MM.dd')}
-                          </span>
-                        </div>
+                      {/* Always visible on mobile, hover on desktop */}
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent p-2.5 md:p-4 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                        <p className="text-white font-semibold text-[11px] md:text-sm truncate">{photo.caption}</p>
+                        <span className="text-[9px] md:text-[10px] text-white/60 font-medium">
+                          {format(new Date(photo.timestamp), 'MM.dd')}
+                        </span>
                       </div>
                     </motion.div>
                   ))}
@@ -644,125 +671,136 @@ export default function App() {
         </div>
 
         {/* Floating Playback Controls */}
-        <div className="absolute bottom-6 right-6 md:bottom-12 md:right-12 z-20 flex flex-col items-end gap-3">
+        <div className="absolute top-3 right-3 md:bottom-12 md:right-12 md:top-auto z-20 flex flex-col items-end gap-2 md:gap-3">
           {isPlaybackActive && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white/90 backdrop-blur-md p-3 rounded-2xl shadow-2xl border border-black/5 flex items-center gap-4 mb-2"
+              className="bg-white/95 backdrop-blur-xl p-2.5 md:p-3 rounded-xl md:rounded-2xl shadow-xl border border-black/5 flex items-center gap-3"
             >
-              <div className="flex flex-col gap-1">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">播放速度</span>
-                <div className="flex gap-1">
-                  {[0.5, 1, 2].map(speed => (
-                    <button
-                      key={speed}
-                      onClick={() => setPlaybackSpeed(speed)}
-                      className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
-                        playbackSpeed === speed ? 'bg-black text-white' : 'bg-black/5 text-gray-500 hover:bg-black/10'
-                      }`}
-                    >
-                      {speed}x
-                    </button>
-                  ))}
-                </div>
+              <div className="flex gap-1">
+                {[0.5, 1, 2].map(speed => (
+                  <button
+                    key={speed}
+                    onClick={() => setPlaybackSpeed(speed)}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                      playbackSpeed === speed ? 'bg-black text-white' : 'bg-black/5 text-gray-500'
+                    }`}
+                  >
+                    {speed}x
+                  </button>
+                ))}
               </div>
-              <div className="h-8 w-px bg-black/5" />
-              <button 
+              <div className="h-5 w-px bg-black/10" />
+              <button
                 onClick={stopPlayback}
-                className="p-2 hover:bg-red-50 rounded-xl transition-colors text-red-500"
+                className="p-1.5 active:bg-red-50 rounded-lg transition-colors text-red-500"
               >
-                <Trash2 className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </motion.div>
           )}
 
-          <div className="flex items-center gap-3 md:gap-4">
-            <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+          <div className="flex items-center gap-2">
+            <motion.button
+              whileTap={{ scale: 0.92 }}
               onClick={startPlayback}
-              className={`flex items-center gap-2 md:gap-3 px-4 md:px-8 py-3 md:py-4 rounded-2xl shadow-2xl font-bold text-xs md:text-sm transition-all ${
-                isPlaybackActive 
-                  ? 'bg-white text-black border border-black/5' 
-                  : 'bg-[#F27D26] text-white shadow-[#F27D26]/30'
+              className={`flex items-center gap-1.5 md:gap-3 px-3 md:px-6 py-2.5 md:py-3.5 rounded-xl md:rounded-2xl shadow-xl font-bold text-[11px] md:text-sm transition-all ${
+                isPlaybackActive
+                  ? 'bg-white text-black border border-black/5'
+                  : 'bg-[#F27D26] text-white shadow-[#F27D26]/25'
               }`}
             >
               {isPlaybackActive ? (
-                isPlaybackPaused ? (
-                  <>
-                    <Play className="w-4 h-4 md:w-5 md:h-5 fill-current" />
-                    <span className="hidden sm:inline">继续播放</span>
-                  </>
-                ) : (
-                  <>
-                    <Pause className="w-4 h-4 md:w-5 md:h-5 fill-current" />
-                    <span className="hidden sm:inline">暂停播放</span>
-                  </>
-                )
+                isPlaybackPaused ? <Play className="w-4 h-4 fill-current" /> : <Pause className="w-4 h-4 fill-current" />
               ) : (
                 <>
-                  <Play className="w-4 h-4 md:w-5 md:h-5 fill-current" />
-                  <span className="hidden sm:inline">路线回放</span>
-                  <span className="sm:hidden">回放</span>
+                  <Play className="w-3.5 h-3.5 md:w-4 md:h-4 fill-current" />
+                  <span>回放</span>
                 </>
               )}
             </motion.button>
-            
-            <div className="flex items-center gap-2 bg-white/90 backdrop-blur-md p-1.5 md:p-2 rounded-2xl shadow-xl border border-black/5">
-              <button 
-                onClick={() => setIsShareOpen(true)}
-                className="p-2.5 md:p-3 hover:bg-black/5 rounded-xl transition-colors"
-              >
-                <Share2 className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
-              </button>
-            </div>
+
+            <button
+              onClick={() => setIsShareOpen(true)}
+              className="p-2.5 md:p-3 bg-white/95 backdrop-blur-xl rounded-xl shadow-xl border border-black/5 active:bg-black/5 transition-colors"
+            >
+              <Share2 className="w-4 h-4 text-gray-500" />
+            </button>
           </div>
         </div>
 
         {/* Active Info Panel (Bottom Left) */}
         {view === 'map' && activeCheckIn && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50 }}
+          <motion.div
+            key={activeCheckIn.id}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="absolute bottom-24 left-6 right-6 md:bottom-12 md:left-12 md:right-auto z-20 md:w-80 bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border border-black/5 overflow-hidden"
+            className="absolute bottom-20 left-3 right-3 md:bottom-12 md:left-12 md:right-auto z-20 md:w-80 bg-white/95 backdrop-blur-xl rounded-2xl md:rounded-3xl shadow-2xl border border-black/5 overflow-hidden"
           >
-            <div className="flex md:block">
+            {/* Mobile: compact horizontal layout */}
+            <div className="flex md:hidden items-center gap-3 p-3" onClick={() => setIsDetailsOpen(true)}>
               {activeCheckIn.photos[0] && (
-                <div className="w-24 h-auto md:w-full md:h-40 relative shrink-0">
-                  <img 
-                    src={activeCheckIn.photos[0].url} 
-                    alt={activeCheckIn.locationName} 
+                <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0">
+                  <img
+                    src={activeCheckIn.photos[0].url}
+                    alt={activeCheckIn.locationName}
                     className="w-full h-full object-cover"
                     referrerPolicy="no-referrer"
                   />
-                  <div className="hidden md:block absolute top-4 right-4 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] text-white font-bold uppercase tracking-wider">
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <h2 className="text-sm font-bold truncate">{activeCheckIn.locationName}</h2>
+                <p className="text-[11px] text-gray-500 line-clamp-1 mt-0.5">{activeCheckIn.description}</p>
+                <div className="flex items-center gap-3 mt-1.5">
+                  <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {format(new Date(activeCheckIn.timestamp), 'MM/dd', { locale: zhCN })}
+                  </span>
+                  <span className="text-[10px] text-[#F27D26] font-bold">{activeCheckIn.photos.length} 张照片</span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+            </div>
+
+            {/* Desktop: full layout */}
+            <div className="hidden md:block">
+              {activeCheckIn.photos[0] && (
+                <div className="w-full h-40 relative">
+                  <img
+                    src={activeCheckIn.photos[0].url}
+                    alt={activeCheckIn.locationName}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] text-white font-bold uppercase tracking-wider">
                     {activeCheckIn.photos.length} 张照片
                   </div>
                 </div>
               )}
-              <div className="p-4 md:p-6 space-y-2 md:space-y-4 flex-1">
+              <div className="p-6 space-y-4">
                 <div>
-                  <h2 className="text-base md:text-xl font-bold line-clamp-1">{activeCheckIn.locationName}</h2>
+                  <h2 className="text-xl font-bold line-clamp-1">{activeCheckIn.locationName}</h2>
                   <div className="flex items-center gap-2 mt-1 text-gray-400">
                     <Calendar className="w-3 h-3" />
-                    <span className="text-[10px] md:text-xs">{format(new Date(activeCheckIn.timestamp), 'yyyy年MM月dd日', { locale: zhCN })}</span>
+                    <span className="text-xs">{format(new Date(activeCheckIn.timestamp), 'yyyy年MM月dd日', { locale: zhCN })}</span>
                   </div>
                 </div>
-                <p className="text-xs md:text-sm text-gray-600 leading-relaxed line-clamp-2 md:line-clamp-none">
+                <p className="text-sm text-gray-600 leading-relaxed">
                   {activeCheckIn.description}
                 </p>
-                <div className="pt-2 md:pt-4 border-t border-black/5 flex items-center justify-between">
+                <div className="pt-4 border-t border-black/5 flex items-center justify-between">
                   <div className="flex -space-x-2">
-                    {activeCheckIn.photos.slice(0, 3).map((p, i) => (
-                      <div key={p.id} className="w-6 h-6 md:w-8 md:h-8 rounded-full border-2 border-white overflow-hidden shadow-sm">
+                    {activeCheckIn.photos.slice(0, 3).map((p) => (
+                      <div key={p.id} className="w-8 h-8 rounded-full border-2 border-white overflow-hidden shadow-sm">
                         <img src={p.url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                       </div>
                     ))}
                   </div>
-                  <button 
+                  <button
                     onClick={() => setIsDetailsOpen(true)}
-                    className="px-4 py-2 bg-[#F27D26] text-white rounded-xl text-[10px] md:text-xs font-bold flex items-center gap-2 hover:bg-[#d96a1d] transition-all shadow-lg shadow-[#F27D26]/20"
+                    className="px-4 py-2 bg-[#F27D26] text-white rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-[#d96a1d] transition-all shadow-lg shadow-[#F27D26]/20"
                   >
                     查看照片墙 <ChevronRight className="w-3 h-3" />
                   </button>
@@ -977,29 +1015,30 @@ export default function App() {
       {/* Photo Lightbox */}
       <AnimatePresence>
         {selectedPhoto && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 md:p-12"
+            onClick={() => setSelectedPhoto(null)}
+            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex flex-col items-center justify-center p-3 md:p-12 safe-top safe-bottom"
           >
-            <button 
+            <button
               onClick={() => setSelectedPhoto(null)}
-              className="absolute top-8 right-8 text-white/60 hover:text-white transition-colors"
+              className="absolute top-4 right-4 md:top-8 md:right-8 p-2 text-white/60 hover:text-white bg-white/10 rounded-full z-10 transition-colors"
             >
-              <X className="w-8 h-8" />
+              <X className="w-5 h-5 md:w-7 md:h-7" />
             </button>
-            <div className="max-w-5xl w-full space-y-6">
-              <motion.img 
+            <div className="max-w-5xl w-full flex flex-col items-center gap-4" onClick={e => e.stopPropagation()}>
+              <motion.img
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                src={selectedPhoto.url} 
-                className="w-full h-auto max-h-[70vh] object-contain rounded-2xl shadow-2xl"
+                src={selectedPhoto.url}
+                className="w-full h-auto max-h-[75vh] object-contain rounded-xl md:rounded-2xl"
                 referrerPolicy="no-referrer"
               />
-              <div className="text-center space-y-2">
-                <h3 className="text-white text-2xl font-serif italic">{selectedPhoto.caption}</h3>
-                <p className="text-white/40 text-xs uppercase tracking-[0.3em]">
+              <div className="text-center space-y-1">
+                <h3 className="text-white text-lg md:text-2xl font-bold">{selectedPhoto.caption}</h3>
+                <p className="text-white/40 text-[11px] md:text-xs">
                   {format(new Date(selectedPhoto.timestamp), 'yyyy.MM.dd HH:mm')}
                 </p>
               </div>
