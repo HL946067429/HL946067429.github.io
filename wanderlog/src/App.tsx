@@ -392,7 +392,7 @@ export default function App() {
   [checkIns]);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#f5f2ed] flex-col md:flex-row">
+    <div className="flex h-[100dvh] w-full overflow-hidden bg-[#f5f2ed] flex-col md:flex-row">
       {/* Mobile Header */}
       <header className="md:hidden flex items-center justify-between px-4 py-2.5 bg-white/90 backdrop-blur-xl border-b border-black/5 z-30 safe-top">
         <div className="flex items-center gap-2.5">
@@ -615,7 +615,7 @@ export default function App() {
         </nav>
 
         {/* View Container */}
-        <div className={`flex-1 p-0 md:p-8 md:pt-24 h-full relative ${view === 'map' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+        <div className={`flex-1 min-h-0 p-0 md:p-8 md:pt-24 relative ${view === 'map' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
           {isRouting && (
             <div className="absolute top-14 md:top-28 left-1/2 -translate-x-1/2 z-30 bg-black/80 backdrop-blur-md text-white px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[10px] font-bold tracking-widest flex items-center gap-2">
               <div className="w-2 h-2 bg-[#F27D26] rounded-full animate-ping" />
@@ -648,7 +648,7 @@ export default function App() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="w-full h-full overflow-y-auto px-3 pt-3 pb-6 md:px-0 md:pt-0 md:pb-0"
+                className="w-full px-3 pt-3 pb-6 md:px-0 md:pt-0 md:pb-0"
               >
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-5">
                   {allPhotos.map((photo, i) => (
