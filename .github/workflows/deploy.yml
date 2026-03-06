@@ -55,6 +55,8 @@ jobs:
         run: |
           rm -rf .vuepress/dist/travel-memories
           cp -r travel-memories/dist .vuepress/dist/travel-memories
+          # SPA fallback: copy index.html as 404.html so client-side routing works
+          cp .vuepress/dist/travel-memories/index.html .vuepress/dist/travel-memories/404.html
           echo "--- Final output structure ---"
           ls -la .vuepress/dist/
           ls -la .vuepress/dist/travel-memories/
