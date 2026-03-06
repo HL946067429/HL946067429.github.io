@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Plus, 
@@ -25,6 +25,7 @@ import { CheckIn, Photo, Trip } from './types';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { getRoute } from './services/routingService';
+import { getAMapLocation, reverseGeocode, isAMapAvailable } from './services/amapService';
 
 export default function App() {
   const [trips, setTrips] = useState<Trip[]>(MOCK_TRIPS);
@@ -188,29 +189,39 @@ export default function App() {
       setIsQuickCheckingIn(false);
       if (quickFileInputRef.current) quickFileInputRef.current.value = '';
 
-      // 3. Background: try to get real location and update
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const { latitude, longitude } = position.coords;
-            const locName = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-            setTrips(prev => prev.map(t => {
-              if (t.id !== activeTripId) return t;
+      // 3. Background: get real location and update the entry
+      const updateLocation = (lat: number, lng: number, name: string) => {
+        setTrips(prev => prev.map(t => {
+          if (t.id !== activeTripId) return t;
+          return {
+            ...t,
+            stops: t.stops.map(s => {
+              if (s.id !== newId) return s;
               return {
-                ...t,
-                stops: t.stops.map(s => {
-                  if (s.id !== newId) return s;
-                  return {
-                    ...s,
-                    locationName: locName,
-                    coordinates: [latitude, longitude] as [number, number],
-                    photos: s.photos.map(p => ({ ...p, caption: locName, location: [latitude, longitude] as [number, number] }))
-                  };
-                })
+                ...s,
+                locationName: name,
+                coordinates: [lat, lng] as [number, number],
+                photos: s.photos.map(p => ({ ...p, caption: name, location: [lat, lng] as [number, number] }))
               };
-            }));
+            })
+          };
+        }));
+      };
+
+      if (isAMapAvailable()) {
+        // China: use Gaode for fast positioning + address
+        getAMapLocation()
+          .then(loc => updateLocation(loc.latitude, loc.longitude, loc.address))
+          .catch(() => { /* ignore */ });
+      } else if (navigator.geolocation) {
+        // Overseas: browser geolocation
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            const name = await reverseGeocode(latitude, longitude);
+            updateLocation(latitude, longitude, name);
           },
-          () => { /* ignore error */ },
+          () => { /* ignore */ },
           { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
         );
       }
@@ -300,44 +311,63 @@ export default function App() {
     }
   };
 
-  // Playback logic
+  // Playback logic using requestAnimationFrame for smooth animation
+  const rafRef = useRef<number>(0);
+  const lastFrameRef = useRef<number>(0);
+  const progressRef = useRef(0);
+
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isPlaybackActive && !isPlaybackPaused) {
-      if (playbackIndex === null) {
-        setPlaybackIndex(0);
-        setPlaybackProgress(0);
-      }
-      
-      interval = setInterval(() => {
-        setPlaybackProgress(prev => {
-          const increment = 0.005 * playbackSpeed;
-          if (prev >= 1) {
-            // We reached a stop, pause for a moment
-            setIsPlaybackPaused(true);
-            setTimeout(() => {
-              setPlaybackIndex(idx => {
-                if (idx !== null && idx < checkIns.length - 2) {
-                  setActiveCheckInId(checkIns[idx + 1].id);
-                  setPlaybackProgress(0); // Reset progress for next segment
-                  setIsPlaybackPaused(false);
-                  return idx + 1;
-                } else {
-                  setIsPlaybackActive(false);
-                  setIsPlaybackPaused(false);
-                  setPlaybackIndex(null);
-                  setPlaybackProgress(0);
-                  return null;
-                }
-              });
-            }, 1500); // Pause for 1.5s at each stop
-            return 1;
-          }
-          return Math.min(prev + increment, 1);
-        });
-      }, 30);
+    if (!isPlaybackActive || isPlaybackPaused) {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      return;
     }
-    return () => clearInterval(interval);
+
+    if (playbackIndex === null) {
+      setPlaybackIndex(0);
+      setPlaybackProgress(0);
+      progressRef.current = 0;
+    }
+
+    const tick = (timestamp: number) => {
+      if (!lastFrameRef.current) lastFrameRef.current = timestamp;
+      const delta = timestamp - lastFrameRef.current;
+      lastFrameRef.current = timestamp;
+
+      // Speed: ~0.15/s at 1x (was 0.005 * 33fps ≈ 0.165/s)
+      const increment = (delta / 1000) * 0.15 * playbackSpeed;
+      progressRef.current = Math.min(progressRef.current + increment, 1);
+
+      if (progressRef.current >= 1) {
+        setPlaybackProgress(1);
+        // Reached a stop, pause briefly
+        setIsPlaybackPaused(true);
+        setTimeout(() => {
+          setPlaybackIndex(idx => {
+            if (idx !== null && idx < checkIns.length - 2) {
+              setActiveCheckInId(checkIns[idx + 1].id);
+              progressRef.current = 0;
+              setPlaybackProgress(0);
+              setIsPlaybackPaused(false);
+              return idx + 1;
+            } else {
+              setIsPlaybackActive(false);
+              setIsPlaybackPaused(false);
+              progressRef.current = 0;
+              setPlaybackProgress(0);
+              return null;
+            }
+          });
+        }, 1500);
+        return; // Stop the loop until unpaused
+      }
+
+      setPlaybackProgress(progressRef.current);
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    lastFrameRef.current = 0;
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [isPlaybackActive, isPlaybackPaused, playbackIndex, checkIns, playbackSpeed]);
 
   const startPlayback = () => {

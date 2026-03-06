@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { CheckIn, Photo } from '../types';
@@ -37,39 +37,42 @@ const renderTransportationIconString = (type?: string) => {
 };
 
 const MovingMarker = ({ route, progress, type, isPaused }: { route: [number, number][], progress: number, type?: string, isPaused: boolean }) => {
+  // Memoize icon to avoid recreating on every frame
+  const icon = React.useMemo(() => L.divIcon({
+    className: 'moving-icon',
+    html: `
+      <div class="relative">
+        <div class="absolute inset-0 bg-[#F27D26]/20 rounded-full animate-ping"></div>
+        <div class="w-12 h-12 bg-[#F27D26] rounded-full shadow-2xl flex items-center justify-center border-4 border-white text-white">
+          ${renderTransportationIconString(type)}
+        </div>
+      </div>
+    `,
+    iconSize: [48, 48],
+    iconAnchor: [24, 24],
+  }), [type]);
+
   if (!route || route.length === 0) return null;
-  
+
   // Find current position along the route array
   const totalPoints = route.length;
   const currentIndex = Math.min(Math.floor(progress * (totalPoints - 1)), totalPoints - 2);
   const nextIndex = currentIndex + 1;
-  
+
   const segmentProgress = (progress * (totalPoints - 1)) % 1;
-  
+
   const start = route[currentIndex];
   const end = route[nextIndex];
-  
+
   const lat = start[0] + (end[0] - start[0]) * segmentProgress;
   const lng = start[1] + (end[1] - start[1]) * segmentProgress;
 
   return (
     <>
-      <Marker 
-        position={[lat, lng]} 
+      <Marker
+        position={[lat, lng]}
         zIndexOffset={1000}
-        icon={L.divIcon({
-          className: 'moving-icon',
-          html: `
-            <div class="relative">
-              <div class="absolute inset-0 bg-[#F27D26]/20 rounded-full animate-ping"></div>
-              <div class="w-12 h-12 bg-[#F27D26] rounded-full shadow-2xl flex items-center justify-center border-4 border-white text-white transition-transform duration-300 ${isPaused ? 'scale-110' : 'scale-100'}">
-                ${renderTransportationIconString(type)}
-              </div>
-            </div>
-          `,
-          iconSize: [48, 48],
-          iconAnchor: [24, 24],
-        })}
+        icon={icon}
       />
       <MapFollower center={[lat, lng]} isPlayback={true} isPaused={isPaused} />
     </>
@@ -78,14 +81,23 @@ const MovingMarker = ({ route, progress, type, isPaused }: { route: [number, num
 
 const MapFollower = ({ center, isPlayback, isPaused }: { center: [number, number], isPlayback: boolean, isPaused: boolean }) => {
   const map = useMap();
+  const lastPanRef = useRef(0);
+
   useEffect(() => {
-    if (isPlayback) {
-      if (isPaused) {
-        map.flyTo(center, 16, { duration: 1 });
-      } else {
-        map.setView(center, map.getZoom(), { animate: true, duration: 0.5 });
-      }
+    if (!isPlayback) return;
+
+    if (isPaused) {
+      map.flyTo(center, 16, { duration: 1 });
+      return;
     }
+
+    // Throttle map panning to every 200ms to avoid jank
+    const now = Date.now();
+    if (now - lastPanRef.current < 200) return;
+    lastPanRef.current = now;
+
+    // Use panTo without animation - let the marker movement be the visual cue
+    map.panTo(center, { animate: false });
   }, [center, map, isPlayback, isPaused]);
   return null;
 };
