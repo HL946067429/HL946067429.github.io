@@ -28,11 +28,13 @@ import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { getRoute } from './services/routingService';
 import { getAMapLocation, getBrowserLocation, isAMapAvailable, preRequestLocationPermission } from './services/amapService';
+import { loadTrips, saveTrips, clearAllData } from './services/storage';
 
 export default function App() {
   const [trips, setTrips] = useState<Trip[]>(MOCK_TRIPS);
   const [activeTripId, setActiveTripId] = useState<string>(MOCK_TRIPS[0].id);
   const [activeCheckInId, setActiveCheckInId] = useState<string | null>(MOCK_TRIPS[0].stops[0].id);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [view, setView] = useState<'map' | 'gallery'>('map');
   const [isPlaybackActive, setIsPlaybackActive] = useState(false);
   const [isPlaybackPaused, setIsPlaybackPaused] = useState(false);
@@ -70,8 +72,23 @@ export default function App() {
   const activeTrip = useMemo(() => trips.find(t => t.id === activeTripId) || trips[0], [trips, activeTripId]);
   const checkIns = activeTrip.stops;
 
-  // Pre-request location permission on app load so check-in is instant
-  useEffect(() => { preRequestLocationPermission(); }, []);
+  // Load persisted data from IndexedDB on startup
+  useEffect(() => {
+    loadTrips<Trip[]>().then(saved => {
+      if (saved && saved.length > 0) {
+        setTrips(saved);
+        setActiveTripId(saved[0].id);
+        setActiveCheckInId(saved[0].stops[0]?.id || null);
+      }
+      setDataLoaded(true);
+    });
+    preRequestLocationPermission();
+  }, []);
+
+  // Auto-save trips to IndexedDB whenever they change
+  useEffect(() => {
+    if (dataLoaded) saveTrips(trips);
+  }, [trips, dataLoaded]);
 
   // Fetch routes between stops when active trip changes
   useEffect(() => {
@@ -890,6 +907,7 @@ export default function App() {
             <button
               onClick={() => {
                 if (window.confirm('确定要清除所有旅程数据吗？此操作不可撤销。')) {
+                  clearAllData();
                   setTrips([]);
                   setActiveTripId('');
                   setActiveCheckInId(null);
