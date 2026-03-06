@@ -615,7 +615,7 @@ export default function App() {
         </nav>
 
         {/* View Container */}
-        <div className="flex-1 p-0 md:p-8 md:pt-24 h-full overflow-hidden relative">
+        <div className={`flex-1 p-0 md:p-8 md:pt-24 h-full relative ${view === 'map' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
           {isRouting && (
             <div className="absolute top-14 md:top-28 left-1/2 -translate-x-1/2 z-30 bg-black/80 backdrop-blur-md text-white px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[10px] font-bold tracking-widest flex items-center gap-2">
               <div className="w-2 h-2 bg-[#F27D26] rounded-full animate-ping" />
