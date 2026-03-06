@@ -28,13 +28,16 @@ import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { getRoute } from './services/routingService';
 import { getAMapLocation, getBrowserLocation, isAMapAvailable, preRequestLocationPermission } from './services/amapService';
-import { loadTrips, saveTrips, clearAllData } from './services/storage';
+import { loadTrips, saveTrips, clearAllData, isFileSyncSupported, pickSyncFile, restoreSyncFile, reauthorizeSyncFile, disableFileSync, syncToFile } from './services/storage';
 
 export default function App() {
   const [trips, setTrips] = useState<Trip[]>(MOCK_TRIPS);
   const [activeTripId, setActiveTripId] = useState<string>(MOCK_TRIPS[0].id);
   const [activeCheckInId, setActiveCheckInId] = useState<string | null>(MOCK_TRIPS[0].stops[0].id);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [syncFileHandle, setSyncFileHandle] = useState<FileSystemFileHandle | null>(null);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+  const [syncEnabled, setSyncEnabled] = useState(false);
   const [view, setView] = useState<'map' | 'gallery'>('map');
   const [isPlaybackActive, setIsPlaybackActive] = useState(false);
   const [isPlaybackPaused, setIsPlaybackPaused] = useState(false);
@@ -82,6 +85,13 @@ export default function App() {
       }
       setDataLoaded(true);
     });
+    // Try to restore previously configured sync file
+    restoreSyncFile().then(handle => {
+      if (handle) {
+        setSyncFileHandle(handle);
+        setSyncEnabled(true);
+      }
+    });
     preRequestLocationPermission();
   }, []);
 
@@ -89,6 +99,27 @@ export default function App() {
   useEffect(() => {
     if (dataLoaded) saveTrips(trips);
   }, [trips, dataLoaded]);
+
+  // Auto-sync to local JSON file periodically (every 30s) and on data change
+  const tripsRef = useRef(trips);
+  tripsRef.current = trips;
+  useEffect(() => {
+    if (!syncEnabled || !syncFileHandle || !dataLoaded) return;
+
+    // Sync immediately on data change
+    syncToFile(syncFileHandle, tripsRef.current).then(ok => {
+      if (ok) setLastSyncTime(new Date().toLocaleTimeString());
+    });
+
+    // Periodic sync every 30 seconds
+    const timer = setInterval(() => {
+      syncToFile(syncFileHandle, tripsRef.current).then(ok => {
+        if (ok) setLastSyncTime(new Date().toLocaleTimeString());
+      });
+    }, 30000);
+
+    return () => clearInterval(timer);
+  }, [syncEnabled, syncFileHandle, dataLoaded, trips]);
 
   // Fetch routes between stops when active trip changes
   useEffect(() => {
@@ -904,10 +935,72 @@ export default function App() {
                 <span className="text-[11px] text-gray-400">将所有旅程数据保存为 JSON 文件</span>
               </div>
             </button>
+            {isFileSyncSupported() && (
+              <div className="p-4 bg-black/5 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-bold block">自动同步到本地文件</span>
+                    <span className="text-[11px] text-gray-400">
+                      {syncEnabled && lastSyncTime ? `上次同步: ${lastSyncTime}` : '每30秒自动保存到 JSON 文件'}
+                    </span>
+                  </div>
+                  {syncEnabled ? (
+                    <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse" title="同步中" />
+                  ) : null}
+                </div>
+                {syncEnabled ? (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        if (syncFileHandle) {
+                          const ok = await syncToFile(syncFileHandle, trips);
+                          if (ok) setLastSyncTime(new Date().toLocaleTimeString());
+                        }
+                      }}
+                      className="flex-1 py-2 bg-[#F27D26]/10 text-[#F27D26] rounded-xl text-xs font-bold active:bg-[#F27D26]/20 transition-colors"
+                    >
+                      立即同步
+                    </button>
+                    <button
+                      onClick={async () => {
+                        await disableFileSync();
+                        setSyncFileHandle(null);
+                        setSyncEnabled(false);
+                        setLastSyncTime(null);
+                      }}
+                      className="flex-1 py-2 bg-black/5 text-gray-500 rounded-xl text-xs font-bold active:bg-black/10 transition-colors"
+                    >
+                      停止同步
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={async () => {
+                      // Try to reauthorize existing handle first
+                      let handle = await reauthorizeSyncFile();
+                      if (!handle) handle = await pickSyncFile();
+                      if (handle) {
+                        setSyncFileHandle(handle);
+                        setSyncEnabled(true);
+                        const ok = await syncToFile(handle, trips);
+                        if (ok) setLastSyncTime(new Date().toLocaleTimeString());
+                      }
+                    }}
+                    className="w-full py-2.5 bg-[#F27D26] text-white rounded-xl text-xs font-bold active:bg-[#F27D26]/90 transition-colors"
+                  >
+                    选择同步文件
+                  </button>
+                )}
+              </div>
+            )}
             <button
               onClick={() => {
                 if (window.confirm('确定要清除所有旅程数据吗？此操作不可撤销。')) {
                   clearAllData();
+                  disableFileSync();
+                  setSyncFileHandle(null);
+                  setSyncEnabled(false);
+                  setLastSyncTime(null);
                   setTrips([]);
                   setActiveTripId('');
                   setActiveCheckInId(null);
