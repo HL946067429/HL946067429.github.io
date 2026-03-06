@@ -92,7 +92,7 @@ export default function GalleryPage() {
   }
 
   return (
-    <div className={`h-full overflow-y-auto ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+    <div className={`h-full overflow-y-auto ${darkMode ? 'bg-gray-900' : 'page-bg'}`}>
       <div className="max-w-7xl mx-auto px-4 py-5">
         {/* Header */}
         <div className="flex items-center justify-between mb-5">

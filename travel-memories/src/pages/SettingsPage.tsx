@@ -207,7 +207,7 @@ export default function SettingsPage() {
   const statsLoading = tripCount === undefined || placeCount === undefined || photoCount === undefined
 
   return (
-    <div className="h-full overflow-y-auto bg-apple-gray6 dark:bg-gray-900">
+    <div className="h-full overflow-y-auto page-bg dark:bg-gray-900">
       <div className="max-w-2xl mx-auto px-4 sm:px-8 py-8">
         {/* Page header */}
         <div className="mb-8">
@@ -228,7 +228,7 @@ export default function SettingsPage() {
             </h2>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 shadow-sm">
+          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 dark:border-gray-700/60 shadow-sm">
             <div className="flex items-center justify-between p-5">
               <div className="flex items-center gap-4">
                 <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${
@@ -276,7 +276,7 @@ export default function SettingsPage() {
             </h2>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 shadow-sm">
+          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 dark:border-gray-700/60 shadow-sm">
             {statsLoading ? (
               <div className="flex justify-center py-8">
                 <Loader2 size={20} className="animate-spin text-gray-400" />
@@ -423,7 +423,7 @@ export default function SettingsPage() {
             </h2>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-red-100 dark:border-red-900/30 shadow-sm">
+          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl border border-red-200/50 dark:border-red-900/30 shadow-sm">
             <div className="p-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -490,7 +490,7 @@ export default function SettingsPage() {
             </h2>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 shadow-sm">
+          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 dark:border-gray-700/60 shadow-sm">
             <div className="p-5 text-center">
               <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-apple-blue mb-4">
                 <span className="text-2xl">🗺️</span>

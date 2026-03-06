@@ -20,6 +20,16 @@
   --color-primary-dark: #0056CC;
 }
 
+/* Modern page background with subtle mesh gradient */
+.page-bg {
+  background: linear-gradient(135deg, #f5f7fa 0%, #f0f2f8 25%, #f7f5fa 50%, #f0f5f5 75%, #f5f7fa 100%);
+  background-size: 400% 400%;
+}
+
+.dark .page-bg {
+  background: linear-gradient(135deg, #0f172a 0%, #111827 50%, #0f172a 100%);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -51,9 +61,10 @@ body {
 
 .leaflet-control-zoom {
   border: none !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1) !important;
-  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04) !important;
+  border-radius: 14px !important;
   overflow: hidden;
+  backdrop-filter: blur(12px);
 }
 
 .leaflet-control-zoom a {
@@ -80,8 +91,8 @@ body {
 }
 
 .leaflet-popup-content-wrapper {
-  border-radius: 12px !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.04) !important;
   padding: 0 !important;
 }
 
@@ -189,13 +200,15 @@ body {
 
 /* Glass morphism utility */
 .glass {
-  background: rgba(255,255,255,0.92);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 
 .dark .glass {
-  background: rgba(31,41,55,0.92);
+  background: rgba(17,24,39,0.75);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 
 /* Scrollbar */

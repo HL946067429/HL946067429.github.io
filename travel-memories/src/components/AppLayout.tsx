@@ -19,34 +19,34 @@ export default function AppLayout() {
   return (
     <div className={`h-full flex flex-col ${darkMode ? 'dark bg-gray-900 text-white' : 'bg-white text-gray-900'}`}>
       {/* Top nav bar */}
-      <header className={`flex items-center justify-between px-5 h-14 border-b shrink-0 ${darkMode ? 'bg-gray-800/95 border-gray-700/80 backdrop-blur-sm' : 'bg-white/95 border-gray-200/80 backdrop-blur-sm'}`}>
+      <header className={`flex items-center justify-between px-5 h-14 border-b shrink-0 ${darkMode ? 'bg-gray-900/80 border-gray-800/60 backdrop-blur-xl' : 'bg-white/70 border-gray-200/50 backdrop-blur-xl shadow-[0_1px_3px_rgba(0,0,0,0.04)]'}`}>
         <NavLink to="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-apple-blue flex items-center justify-center">
-            <Map size={16} className="text-white" />
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-sm shadow-blue-500/25">
+            <Map size={15} className="text-white" />
           </div>
-          <span className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
+          <span className="text-base font-bold text-gray-900 dark:text-white tracking-tight">
             Travel Memories
           </span>
         </NavLink>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-0.5">
+        <nav className="hidden md:flex items-center gap-0.5 bg-gray-100/80 dark:bg-gray-800/80 rounded-xl p-1 border border-gray-200/30 dark:border-gray-700/30">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.to === '/'}
               className={({ isActive }) =>
-                `flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
+                `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 ${
                   isActive
-                    ? 'bg-apple-gray6 text-apple-blue dark:bg-gray-700 dark:text-blue-400'
+                    ? 'bg-white text-blue-600 shadow-sm shadow-gray-200/50 dark:bg-gray-700 dark:text-blue-400 dark:shadow-none'
                     : darkMode
-                      ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/60'
-                      : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100/80'
+                      ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
                 }`
               }
             >
-              <item.icon size={16} />
+              <item.icon size={14} />
               {item.label}
             </NavLink>
           ))}

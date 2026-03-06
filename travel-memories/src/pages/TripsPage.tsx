@@ -139,7 +139,7 @@ export default function TripsPage() {
   ]
 
   return (
-    <div className="h-full overflow-y-auto bg-apple-gray6 dark:bg-gray-900">
+    <div className="h-full overflow-y-auto page-bg dark:bg-gray-900">
       <div className="max-w-6xl mx-auto px-6 sm:px-8 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -153,7 +153,7 @@ export default function TripsPage() {
           </div>
           <button
             onClick={() => { resetForm(); setShowForm(true) }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-apple-blue hover:bg-apple-blue/85 active:opacity-70 text-white rounded-xl font-medium transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 active:opacity-70 text-white rounded-xl font-medium shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-200"
           >
             <Plus size={18} strokeWidth={2.5} />
             新建旅行
@@ -161,17 +161,17 @@ export default function TripsPage() {
         </div>
 
         {/* Filter tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-1 mb-6 bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-1 w-fit border border-gray-200/40 dark:border-gray-700/40">
           {tabs.map((tab) => {
             const count = tabCounts[tab.key]
             return (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                   activeTab === tab.key
-                    ? 'bg-white dark:bg-gray-800 text-apple-blue dark:text-blue-400'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-white/60 dark:hover:bg-gray-800/60'
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                 }`}
               >
                 <tab.icon size={15} />
@@ -179,8 +179,8 @@ export default function TripsPage() {
                 {count > 0 && (
                   <span className={`text-xs px-1.5 py-0.5 rounded-md font-semibold ${
                     activeTab === tab.key
-                      ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'
-                      : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                      ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'
+                      : 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500'
                   }`}>
                     {count}
                   </span>
@@ -438,19 +438,20 @@ export default function TripsPage() {
             {filteredTrips.map((trip) => (
               <div
                 key={trip.id}
-                className="group bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 overflow-hidden transition-colors cursor-pointer"
+                className="group bg-white dark:bg-gray-800/80 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 overflow-hidden cursor-pointer shadow-sm hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-none hover:-translate-y-0.5 transition-all duration-300"
               >
                 {/* Cover gradient */}
                 <div
                   onClick={() => navigate(`/trips/${trip.id}`)}
-                  className="h-32 relative overflow-hidden"
+                  className="h-36 relative overflow-hidden"
                 >
                   <div
                     className="absolute inset-0"
                     style={{
-                      backgroundColor: trip.color,
+                      background: `linear-gradient(135deg, ${trip.color}, ${trip.color}cc 40%, ${trip.color}88 70%, ${trip.color}55)`,
                     }}
                   />
+                  <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} />
 
                   <div className="absolute bottom-3 left-3 flex items-center gap-2">
                     <span
