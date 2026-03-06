@@ -591,7 +591,7 @@ export default function App() {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col relative">
+      <main className="flex-1 min-h-0 flex flex-col relative">
         {/* Top Navigation (Desktop Only) */}
         <nav className="hidden md:flex absolute top-8 left-1/2 -translate-x-1/2 z-20 bg-white/90 backdrop-blur-md px-2 py-2 rounded-2xl shadow-2xl border border-black/5 items-center gap-1">
           <button 

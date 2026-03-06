@@ -7,9 +7,12 @@
 }
 
 @layer base {
-  body {
+  html, body {
     @apply bg-[#f5f2ed] text-[#1a1a1a] font-sans antialiased;
     -webkit-tap-highlight-color: transparent;
+    height: 100%;
+    height: 100dvh;
+    overscroll-behavior: none;
   }
 }
 
