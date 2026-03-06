@@ -109,9 +109,14 @@ const MapUpdater = ({ center }: { center: [number, number] }) => {
   return null;
 };
 
-export const TravelMap: React.FC<TravelMapProps> = ({ 
-  checkIns, 
-  activeCheckInId, 
+// Check if coordinates are roughly in China
+const isInChina = (lat: number, lng: number): boolean => {
+  return lat >= 3.86 && lat <= 53.55 && lng >= 73.66 && lng <= 135.05;
+};
+
+export const TravelMap: React.FC<TravelMapProps> = ({
+  checkIns,
+  activeCheckInId,
   onMarkerClick,
   playbackIndex,
   playbackProgress,
@@ -120,29 +125,65 @@ export const TravelMap: React.FC<TravelMapProps> = ({
   mapStyle = 'standard'
 }) => {
   const activeCheckIn = checkIns.find(c => c.id === activeCheckInId);
-  
+
+  // Determine if we should use China tiles based on the first check-in's coordinates
+  const useChina = checkIns.length > 0 && isInChina(checkIns[0].coordinates[0], checkIns[0].coordinates[1]);
+
   const getTileLayer = () => {
-    switch (mapStyle) {
-      case 'satellite':
-        return {
-          url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-          attribution: '&copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
-        };
-      case 'terrain':
-        return {
-          url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-          attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
-        };
-      case 'dark':
-        return {
-          url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        };
-      default:
-        return {
-          url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        };
+    if (useChina) {
+      switch (mapStyle) {
+        case 'satellite':
+          return {
+            url: 'https://webst0{s}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}',
+            attribution: '&copy; 高德地图',
+            subdomains: ['1', '2', '3', '4'],
+          };
+        case 'terrain':
+          return {
+            url: 'https://wprd0{s}.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scl=1&style=8&ltype=11',
+            attribution: '&copy; 高德地图',
+            subdomains: ['1', '2', '3', '4'],
+          };
+        case 'dark':
+          return {
+            url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+            attribution: '&copy; CARTO',
+            subdomains: ['a', 'b', 'c', 'd'],
+          };
+        default:
+          return {
+            url: 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+            attribution: '&copy; 高德地图',
+            subdomains: ['1', '2', '3', '4'],
+          };
+      }
+    } else {
+      switch (mapStyle) {
+        case 'satellite':
+          return {
+            url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            attribution: '&copy; Esri',
+            subdomains: [] as string[],
+          };
+        case 'terrain':
+          return {
+            url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+            attribution: '&copy; OpenTopoMap',
+            subdomains: ['a', 'b', 'c'],
+          };
+        case 'dark':
+          return {
+            url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+            attribution: '&copy; CARTO',
+            subdomains: ['a', 'b', 'c', 'd'],
+          };
+        default:
+          return {
+            url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            attribution: '&copy; OpenStreetMap',
+            subdomains: ['a', 'b', 'c'],
+          };
+      }
     }
   };
 
@@ -177,6 +218,7 @@ export const TravelMap: React.FC<TravelMapProps> = ({
         <TileLayer
           attribution={tileLayer.attribution}
           url={tileLayer.url}
+          {...(tileLayer.subdomains.length > 0 ? { subdomains: tileLayer.subdomains } : {})}
         />
         
         {/* Route Line */}
