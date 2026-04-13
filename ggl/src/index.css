@@ -168,14 +168,24 @@
   /* 3D 透视类 */
   .perspective-1000 {
     perspective: 1000px;
+    -webkit-perspective: 1000px;
   }
 
   .preserve-3d {
     transform-style: preserve-3d;
+    -webkit-transform-style: preserve-3d;
   }
 
   .backface-hidden {
     backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    /* 独立 layer，避免内层 overflow-hidden 绘制穿透到背面 */
+    isolation: isolate;
+  }
+
+  .rotate-y-180 {
+    transform: rotateY(180deg);
+    -webkit-transform: rotateY(180deg);
   }
 
   /* 刮涂引导摆动 */

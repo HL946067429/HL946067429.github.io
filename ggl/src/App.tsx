@@ -111,9 +111,18 @@ export default function App() {
           animate={{ rotateY: isFlipped ? 180 : 0 }}
           transition={{ duration: 0.8, type: 'spring', stiffness: 100, damping: 20 }}
           className="w-full h-full relative preserve-3d"
+          style={{ transformStyle: 'preserve-3d', WebkitTransformStyle: 'preserve-3d' as any }}
         >
           {/* FRONT SIDE */}
-          <div className="absolute inset-0 backface-hidden">
+          <div
+            className="absolute inset-0 backface-hidden"
+            style={{
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
+              transform: 'rotateY(0deg)',
+              WebkitTransform: 'rotateY(0deg)',
+            }}
+          >
             <div className="velvet-navy rounded-[20px] p-1.5 shadow-[0_25px_60px_-10px_rgba(0,0,0,0.5),0_10px_30px_-5px_rgba(196,30,58,0.3)] relative overflow-hidden h-full flex flex-col gold-border">
               {/* Decorative Background Pattern */}
               <div className="absolute inset-0 opacity-[0.08] pointer-events-none">
@@ -271,7 +280,15 @@ export default function App() {
           </div>
 
           {/* BACK SIDE */}
-          <div className="absolute inset-0 backface-hidden rotate-y-180">
+          <div
+            className="absolute inset-0 backface-hidden rotate-y-180"
+            style={{
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
+              transform: 'rotateY(180deg)',
+              WebkitTransform: 'rotateY(180deg)',
+            }}
+          >
             <div className="bg-gradient-to-br from-white via-[#fffdf7] to-[#fff8e6] rounded-[20px] p-6 shadow-[0_25px_60px_-10px_rgba(0,0,0,0.3)] border-2 border-[#d4af37]/30 h-full flex flex-col text-gray-800 relative overflow-hidden">
               <div className="absolute inset-0 bg-paper opacity-10 pointer-events-none" />
               {/* 装饰角花 */}
@@ -465,11 +482,6 @@ export default function App() {
         ))}
       </div>
 
-      <style>{`
-        .rotate-y-180 {
-          transform: rotateY(180deg);
-        }
-      `}</style>
     </div>
   );
 }
