@@ -1,4 +1,4 @@
-name: Deploy VuePress + Travel Memories + WanderLog to Pages
+name: Deploy VuePress + Travel Memories + WanderLog + GGL to Pages
 
 on:
   push:
@@ -59,6 +59,15 @@ jobs:
         working-directory: wanderlog
         run: npm run build
 
+      # Build GGL (Anniversary Scratch Card) app
+      - name: Install GGL Dependencies
+        working-directory: ggl
+        run: npm install
+
+      - name: Build GGL
+        working-directory: ggl
+        run: npm run build
+
       # Merge all outputs
       - name: Merge Build Outputs
         run: |
@@ -72,10 +81,16 @@ jobs:
           cp -r wanderlog/dist .vuepress/dist/wanderlog
           cp .vuepress/dist/wanderlog/index.html .vuepress/dist/wanderlog/404.html
 
+          # GGL
+          rm -rf .vuepress/dist/ggl
+          cp -r ggl/dist .vuepress/dist/ggl
+          cp .vuepress/dist/ggl/index.html .vuepress/dist/ggl/404.html
+
           echo "--- Final output structure ---"
           ls -la .vuepress/dist/
           ls -la .vuepress/dist/travel-memories/
           ls -la .vuepress/dist/wanderlog/
+          ls -la .vuepress/dist/ggl/
 
       - name: Upload Artifact
         if: success()
