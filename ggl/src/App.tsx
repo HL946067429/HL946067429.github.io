@@ -196,7 +196,8 @@ export default function App() {
                   <div className="absolute bottom-1 right-1 w-3 h-3 border-b-2 border-r-2 border-[#d4af37]/60 rounded-br" />
 
                   <ScratchCard
-                    threshold={60}
+                    threshold={30}
+                    brushSize={20}
                     onComplete={handleComplete}
                     onZoneReveal={handleZoneReveal}
                     rows={5}
