@@ -85,9 +85,10 @@ jobs:
           rm -rf .vuepress/dist/ggl
           cp -r ggl/dist .vuepress/dist/ggl
           cp .vuepress/dist/ggl/index.html .vuepress/dist/ggl/404.html
-          # SPA sub-route: /ggl/admin/ needs its own index.html
-          mkdir -p .vuepress/dist/ggl/admin
+          # SPA sub-routes need their own index.html
+          mkdir -p .vuepress/dist/ggl/admin .vuepress/dist/ggl/wheel
           cp .vuepress/dist/ggl/index.html .vuepress/dist/ggl/admin/index.html
+          cp .vuepress/dist/ggl/index.html .vuepress/dist/ggl/wheel/index.html
 
           echo "--- Final output structure ---"
           ls -la .vuepress/dist/
