@@ -1,34 +1,13 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, Sparkles, Trophy, Star, Ghost, Coffee, Utensils, Zap, Smile, Coins, Gift, Flower, Keyboard, ShoppingCart, Ticket, Moon, Sun, Cloud, Music, Camera, RefreshCw, Hand } from 'lucide-react';
+import { Heart, Sparkles, Trophy, Star, Flower, Gift, RefreshCw, Hand } from 'lucide-react';
 import { ScratchCard } from './components/ScratchCard';
 import confetti from 'canvas-confetti';
-
-// 20 items to match the image grid (4x5)
-const ALL_ITEMS = [
-  { id: 1, title: '三套定制键帽', icon: <Keyboard className="w-5 h-5 text-blue-600" />, value: '¥888', type: 'real' },
-  { id: 2, title: '洗碗券一次', icon: <Utensils className="w-5 h-5 text-green-600" />, value: '¥10', type: 'funny' },
-  { id: 3, title: '一束浪漫鲜花', icon: <Flower className="w-5 h-5 text-pink-600" />, value: '¥520', type: 'real' },
-  { id: 4, title: '不准生气券', icon: <Ghost className="w-5 h-5 text-purple-600" />, value: '¥99', type: 'funny' },
-  { id: 5, title: '一份真刮刮乐', icon: <Trophy className="w-5 h-5 text-yellow-600" />, value: '¥100', type: 'real' },
-  { id: 6, title: '亲亲一个', icon: <Smile className="w-5 h-5 text-red-500" />, value: '¥1314', type: 'funny' },
-  { id: 7, title: '再来一瓶空气', icon: <Zap className="w-5 h-5 text-cyan-500" />, value: '¥0', type: 'funny' },
-  { id: 8, title: '陪逛街不喊累', icon: <Star className="w-5 h-5 text-orange-500" />, value: '¥200', type: 'funny' },
-  { id: 9, title: '清空购物车', icon: <ShoppingCart className="w-5 h-5 text-amber-700" />, value: '¥100', type: 'funny' },
-  { id: 10, title: '捏脚10分钟', icon: <Coins className="w-5 h-5 text-yellow-700" />, value: '¥50', type: 'funny' },
-  { id: 11, title: '奶茶一杯', icon: <Coffee className="w-5 h-5 text-amber-800" />, value: '¥25', type: 'real' },
-  { id: 12, title: '电影票两张', icon: <Ticket className="w-5 h-5 text-red-600" />, value: '¥120', type: 'real' },
-  { id: 13, title: '承包一周早餐', icon: <Sun className="w-5 h-5 text-orange-400" />, value: '¥150', type: 'funny' },
-  { id: 14, title: '最美称号', icon: <Heart className="w-5 h-5 text-pink-400" />, value: '¥∞', type: 'funny' },
-  { id: 15, title: '听我唠叨一次', icon: <Music className="w-5 h-5 text-indigo-500" />, value: '¥200', type: 'funny' },
-  { id: 16, title: '美美合照一张', icon: <Camera className="w-5 h-5 text-teal-500" />, value: '¥88', type: 'real' },
-  { id: 17, title: '睡前故事一则', icon: <Moon className="w-5 h-5 text-violet-500" />, value: '¥30', type: 'funny' },
-  { id: 18, title: '承包家务一天', icon: <Cloud className="w-5 h-5 text-sky-500" />, value: '¥200', type: 'funny' },
-  { id: 19, title: '谢谢参与', icon: <Gift className="w-5 h-5 text-gray-400" />, value: '¥0', type: 'filler' },
-  { id: 20, title: '谢谢参与', icon: <Star className="w-5 h-5 text-gray-400" />, value: '¥0', type: 'filler' },
-];
+import { ICON_MAP } from './icons';
+import { useItems } from './useItems';
 
 export default function App() {
+  const { config } = useItems();
   const [isComplete, setIsComplete] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const [revealedItems, setRevealedItems] = useState<Set<number>>(new Set());
@@ -63,6 +42,19 @@ export default function App() {
   const handleZoneReveal = useCallback((index: number) => {
     setRevealedItems(prev => new Set(prev).add(index));
   }, []);
+
+  if (!config) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-500 text-sm">
+        <Sparkles className="w-5 h-5 mr-2 text-[#d4af37] animate-pulse" />
+        正在准备惊喜…
+      </div>
+    );
+  }
+
+  const ALL_ITEMS = config.items;
+  const GRID_ROWS = config.rows;
+  const GRID_COLS = config.cols;
 
   return (
     <div className="min-h-screen font-sans selection:bg-red-100 flex flex-col items-center justify-center p-4 sm:p-8 overflow-hidden relative">
@@ -209,11 +201,16 @@ export default function App() {
                     brushSize={20}
                     onComplete={handleComplete}
                     onZoneReveal={handleZoneReveal}
-                    rows={5}
-                    cols={4}
+                    rows={GRID_ROWS}
+                    cols={GRID_COLS}
                   >
-                    <div className="grid grid-cols-4 gap-2 w-full h-full p-2 bg-gradient-to-br from-white via-[#fffdf7] to-[#fff7e6] rounded-xl shadow-inner overflow-hidden">
-                      {ALL_ITEMS.map((item, index) => (
+                    <div
+                      className="grid gap-2 w-full h-full p-2 bg-gradient-to-br from-white via-[#fffdf7] to-[#fff7e6] rounded-xl shadow-inner overflow-hidden"
+                      style={{ gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))` }}
+                    >
+                      {ALL_ITEMS.map((item, index) => {
+                        const IconComp = ICON_MAP[item.icon] ?? Star;
+                        return (
                         <div
                           key={item.id}
                           className={`relative flex flex-col items-center justify-between p-1.5 rounded-lg border overflow-hidden h-full transition-colors ${
@@ -241,7 +238,7 @@ export default function App() {
                             className="flex-1 flex flex-col items-center justify-between w-full h-full"
                           >
                             <div className="flex-1 flex items-center justify-center">
-                              {item.icon}
+                              <IconComp className={`w-5 h-5 ${item.iconColor}`} />
                             </div>
                             <div className="w-full text-center mt-auto">
                               <span className="text-[6px] font-bold text-gray-500 block leading-none mb-1 uppercase tracking-tighter">
@@ -255,7 +252,8 @@ export default function App() {
                             </div>
                           </motion.div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </ScratchCard>
                 </div>
