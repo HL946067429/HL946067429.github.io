@@ -1,9 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, Sparkles, Gift, Star, RotateCw, Trophy, X, ChevronRight, Flower, Info, Bug } from 'lucide-react';
+import { Heart, Sparkles, Gift, Star, RotateCw, Trophy, X, ChevronRight, Flower, Info, Bug, Volume2, VolumeX } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { ICON_MAP } from './icons';
 import { useItems } from './useItems';
+import { useMute } from './useMute';
+import {
+  playWinReal, playWinFunny, playLose, playTick, playAllDone,
+  playHack, playAlarm, vibrate, vibrateWin, vibrateBigWin, vibrateLose,
+} from './sounds';
 import type { RawItem } from './types';
 
 /* ------------------------------------------------------------------ */
@@ -45,6 +50,7 @@ export default function Wheel() {
   // 作弊系统
   const [cheatPhase, setCheatPhase] = useState<'idle' | 'hacking' | 'failed'>('idle');
   const [cheatMsg, setCheatMsg] = useState('');
+  const [muted, setMuted] = useMute();
 
   const items = config?.items ?? [];
   const n = items.length;
@@ -207,13 +213,38 @@ export default function Wheel() {
 
     setCurrentAngle(finalAngle);
 
+    // 咔嗒声调度：用 ease-out 近似 cubic-bezier，按角度变化触发 tick
+    const totalDelta = finalAngle - currentAngle;
+    const totalDuration = 4200; // 与 CSS 动画一致
+    const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+    const tickAt: number[] = [];
+    let lastSliceIdx = -1;
+    const stepMs = 30;
+    for (let t = 0; t <= totalDuration; t += stepMs) {
+      const angle = currentAngle + totalDelta * easeOut(t / totalDuration);
+      const sliceIdx = Math.floor(angle / sliceAngle);
+      if (sliceIdx !== lastSliceIdx) {
+        tickAt.push(t);
+        lastSliceIdx = sliceIdx;
+      }
+    }
+    const tickTimers = tickAt.map((t, i) =>
+      setTimeout(() => playTick(0.05 + Math.max(0, 0.05 * (1 - i / tickAt.length))), t)
+    );
+
     setTimeout(() => {
+      tickTimers.forEach(clearTimeout);
       const won = items[targetIdx];
       setWonItem({ item: won, index: targetIdx });
       setWonQuip(pickToast(config?.toasts ?? FALLBACK_TOASTS, won.type));
       setWonIndices(prev => new Set(prev).add(targetIdx));
       setShowModal(true);
       setSpinning(false);
+
+      // 音效 + 震动
+      if (won.type === 'real') { playWinReal(); vibrateBigWin(); }
+      else if (won.type === 'filler') { playLose(); vibrateLose(); }
+      else { playWinFunny(); vibrateWin(); }
 
       // 连续谢谢参与检测
       if (won.type === 'filler') {
@@ -228,7 +259,7 @@ export default function Wheel() {
       fire(400, { particleCount: 50, angle: 120, spread: 50, origin: { x: 1, y: 0.6 }, colors: ['#c41e3a', '#d4af37'] });
 
       if (wonIndices.size + 1 >= n) {
-        setTimeout(() => setAllDone(true), 1500);
+        setTimeout(() => { setAllDone(true); playAllDone(); vibrateBigWin(); }, 1500);
       }
     }, 4500);
   };
@@ -247,6 +278,7 @@ export default function Wheel() {
   const triggerCheat = () => {
     if (cheatPhase !== 'idle' || spinning) return;
     setCheatPhase('hacking');
+    playHack();
     const msgs = [
       '正在入侵转盘系统…',
       '绕过防火墙中…',
@@ -260,10 +292,13 @@ export default function Wheel() {
       i++;
       if (i < msgs.length) {
         setCheatMsg(msgs[i]);
+        playHack();
       } else {
         clearInterval(timer);
         setCheatPhase('failed');
         setCheatMsg('');
+        playAlarm();
+        vibrate([100, 60, 100, 60, 200]);
       }
     }, 800);
   };
@@ -324,6 +359,13 @@ export default function Wheel() {
           >
             <Info className="w-3.5 h-3.5 text-[#d4af37]" />
             规则
+          </button>
+          <button
+            onClick={() => setMuted(!muted)}
+            title={muted ? '开启音效' : '关闭音效'}
+            className="inline-flex items-center justify-center w-8 h-8 bg-white/70 backdrop-blur-sm rounded-full border border-[#d4af37]/30 shadow-sm text-gray-600 hover:border-[#d4af37] hover:text-[#c41e3a] transition-all"
+          >
+            {muted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
           </button>
         </div>
       </motion.div>

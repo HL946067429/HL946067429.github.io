@@ -1,10 +1,15 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, Sparkles, Trophy, Star, Flower, Gift, RefreshCw, Hand } from 'lucide-react';
+import { Heart, Sparkles, Trophy, Star, Flower, Gift, RefreshCw, Hand, Volume2, VolumeX } from 'lucide-react';
 import { ScratchCard } from './components/ScratchCard';
 import confetti from 'canvas-confetti';
 import { ICON_MAP } from './icons';
 import { useItems } from './useItems';
+import { useMute } from './useMute';
+import {
+  playWinReal, playWinFunny, playLose, playAllDone,
+  vibrateWin, vibrateBigWin, vibrateLose,
+} from './sounds';
 
 import type { ToastsConfig } from './types';
 
@@ -25,6 +30,7 @@ export default function App() {
   const [revealedItems, setRevealedItems] = useState<Set<number>>(new Set());
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastIdRef = useRef(0);
+  const [muted, setMuted] = useMute();
 
   const addToast = useCallback((text: string) => {
     const id = ++toastIdRef.current;
@@ -35,6 +41,8 @@ export default function App() {
 
   const handleComplete = useCallback(() => {
     setIsComplete(true);
+    playAllDone();
+    vibrateBigWin();
     const fire = (delay: number, opts: confetti.Options) => {
       setTimeout(() => confetti(opts), delay);
     };
@@ -62,10 +70,14 @@ export default function App() {
 
   const handleZoneReveal = useCallback((index: number) => {
     setRevealedItems(prev => new Set(prev).add(index));
-    // 根据奖品类型弹搞怪弹幕
     if (!config) return;
     const item = config.items[index];
     if (!item) return;
+    // 音效 + 震动
+    if (item.type === 'real') { playWinReal(); vibrateBigWin(); }
+    else if (item.type === 'filler') { playLose(); vibrateLose(); }
+    else { playWinFunny(); vibrateWin(); }
+    // 弹幕
     const toasts = config.toasts ?? FALLBACK_TOASTS;
     addToast(pickToast(toasts, item.type));
   }, [config, addToast]);
@@ -111,17 +123,30 @@ export default function App() {
           </div>
         </motion.div>
 
-        <motion.button
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setIsFlipped(!isFlipped)}
-          className="flex items-center gap-2 bg-white/95 backdrop-blur-sm px-4 py-2.5 rounded-full shadow-lg border border-[#d4af37]/40 text-gray-700 font-bold text-xs transition-all hover:shadow-xl hover:border-[#d4af37]"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 transition-transform duration-700 ${isFlipped ? 'rotate-180' : ''}`} />
-          {isFlipped ? '正面' : '规则'}
-        </motion.button>
+        <div className="flex items-center gap-2">
+          <motion.button
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setMuted(!muted)}
+            title={muted ? '开启音效' : '关闭音效'}
+            className="w-10 h-10 flex items-center justify-center bg-white/95 backdrop-blur-sm rounded-full shadow-lg border border-[#d4af37]/40 text-gray-600 hover:text-[#c41e3a] transition-all"
+          >
+            {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </motion.button>
+          <motion.button
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsFlipped(!isFlipped)}
+            className="flex items-center gap-2 bg-white/95 backdrop-blur-sm px-4 py-2.5 rounded-full shadow-lg border border-[#d4af37]/40 text-gray-700 font-bold text-xs transition-all hover:shadow-xl hover:border-[#d4af37]"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 transition-transform duration-700 ${isFlipped ? 'rotate-180' : ''}`} />
+            {isFlipped ? '正面' : '规则'}
+          </motion.button>
+        </div>
       </div>
 
       {/* Main Card Container */}

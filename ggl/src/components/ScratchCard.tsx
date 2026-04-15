@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { startScratch, stopScratch } from '../sounds';
 
 interface ScratchCardProps {
   onComplete?: () => void;
@@ -280,6 +281,7 @@ export const ScratchCard: React.FC<ScratchCardProps> = ({
     const { x, y } = getPos(e);
     isDrawingRef.current = true;
     lastPosRef.current = null;
+    startScratch();
     scratch(x, y);
   };
 
@@ -292,6 +294,7 @@ export const ScratchCard: React.FC<ScratchCardProps> = ({
   const handleEnd = () => {
     isDrawingRef.current = false;
     lastPosRef.current = null;
+    stopScratch();
   };
 
   return (
