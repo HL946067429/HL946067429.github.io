@@ -461,7 +461,6 @@ export default function Wheel() {
                     >
                       <IconComp className={`w-3.5 h-3.5 ${item.iconColor}`} />
                       {item.title}
-                      <span className="font-mono text-[10px] opacity-50">{item.value}</span>
                     </motion.div>
                   );
                 })}
@@ -597,22 +596,12 @@ export default function Wheel() {
                 >
                   {wonItem.item.title}
                 </motion.h2>
-                <motion.p
-                  initial={{ y: 10, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.3 }}
-                  className={`text-2xl font-black font-mono ${
-                    isReal ? 'text-[#c41e3a]' : isFiller ? 'text-gray-400' : 'text-[#c41e3a]/70'
-                  }`}
-                >
-                  {wonItem.item.value}
-                </motion.p>
                 {/* 搞怪副标题 */}
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="text-[11px] text-gray-400 font-bold mt-1 mb-4"
+                  transition={{ delay: 0.4 }}
+                  className="text-xs text-gray-500 font-bold mt-2 mb-5"
                 >
                   {wonQuip}
                 </motion.p>

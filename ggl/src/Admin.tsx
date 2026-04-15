@@ -470,14 +470,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                       value={item.title}
                       onChange={(e) => updateItem(idx, { title: e.target.value })}
                       placeholder="标题"
-                      className="col-span-2 px-2 py-1.5 rounded-lg border border-gray-200 focus:border-[#d4af37] outline-none text-xs font-medium"
-                    />
-                    <input
-                      type="text"
-                      value={item.value}
-                      onChange={(e) => updateItem(idx, { value: e.target.value })}
-                      placeholder="¥金额"
-                      className="px-2 py-1.5 rounded-lg border border-gray-200 focus:border-[#d4af37] outline-none text-xs font-mono"
+                      className="col-span-2 sm:col-span-3 px-2 py-1.5 rounded-lg border border-gray-200 focus:border-[#d4af37] outline-none text-xs font-medium"
                     />
                     <select
                       value={item.type}

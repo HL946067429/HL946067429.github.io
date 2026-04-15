@@ -258,18 +258,11 @@ export default function App() {
                             className="flex-1 flex flex-col items-center justify-between w-full h-full"
                           >
                             <div className="flex-1 flex items-center justify-center">
-                              <IconComp className={`w-5 h-5 ${item.iconColor}`} />
+                              <IconComp className={`w-6 h-6 ${item.iconColor}`} />
                             </div>
-                            <div className="w-full text-center mt-auto">
-                              <span className="text-[6px] font-bold text-gray-500 block leading-none mb-1 uppercase tracking-tighter">
-                                {item.title}
-                              </span>
-                              <span className={`text-[11px] font-black font-mono leading-none block ${
-                                item.type === 'real' ? 'text-[#c41e3a]' : item.type === 'filler' ? 'text-gray-400' : 'text-[#c41e3a]/70'
-                              }`}>
-                                {item.value}
-                              </span>
-                            </div>
+                            <span className="text-[8px] font-bold text-gray-600 block leading-tight text-center mt-auto tracking-tight">
+                              {item.title}
+                            </span>
                           </motion.div>
                         </div>
                         );
@@ -469,21 +462,18 @@ export default function App() {
                 <Sparkles className="w-5 h-5 text-[#d4af37] animate-pulse" />
               </div>
             </div>
-            {/* 搞怪总价值统计 */}
+            {/* 搞怪统计 */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.2 }}
               className="bg-white/90 backdrop-blur-sm rounded-2xl px-5 py-3 shadow-md border border-[#d4af37]/30 text-center"
             >
-              <p className="text-[10px] text-gray-500 font-bold mb-1">本次刮奖总价值</p>
-              <p className="text-2xl font-black text-[#c41e3a] font-mono">
-                ¥{ALL_ITEMS.reduce((sum, item) => {
-                  const n = parseInt(item.value.replace(/[^0-9]/g, ''), 10);
-                  return sum + (isNaN(n) ? 0 : n);
-                }, 0).toLocaleString()}
+              <p className="text-[10px] text-gray-500 font-bold mb-1">刮奖结果</p>
+              <p className="text-lg font-black text-gray-800">
+                实物 {ALL_ITEMS.filter(i => i.type === 'real').length} 个 · 趣味券 {ALL_ITEMS.filter(i => i.type === 'funny').length} 张
               </p>
-              <p className="text-[10px] text-gray-400 mt-1 font-bold">男朋友已负债累累，请温柔对待 🥲</p>
+              <p className="text-[10px] text-gray-400 mt-1 font-bold">请找男朋友兑奖，逾期不候（其实永远有效）</p>
             </motion.div>
           </motion.div>
         )}
