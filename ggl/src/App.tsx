@@ -197,8 +197,8 @@ export default function App() {
                   <div className="absolute bottom-1 right-1 w-3 h-3 border-b-2 border-r-2 border-[#d4af37]/60 rounded-br" />
 
                   <ScratchCard
-                    threshold={35}
-                    brushSize={28}
+                    threshold={20}
+                    brushSize={30}
                     onComplete={handleComplete}
                     onZoneReveal={handleZoneReveal}
                     rows={GRID_ROWS}
@@ -210,31 +210,24 @@ export default function App() {
                     >
                       {ALL_ITEMS.map((item, index) => {
                         const IconComp = ICON_MAP[item.icon] ?? Star;
+                        const revealed = revealedItems.has(index);
                         return (
                         <div
                           key={item.id}
-                          className={`relative flex flex-col items-center justify-between p-1.5 rounded-lg border overflow-hidden h-full transition-colors ${
-                            revealedItems.has(index)
+                          className={`relative flex flex-col items-center justify-between p-1.5 rounded-lg border overflow-hidden h-full transition-all duration-500 ${
+                            revealed
                               ? item.type === 'real'
                                 ? 'border-[#d4af37]/60 bg-gradient-to-br from-[#fff9e6] to-[#fff3c4] shadow-[0_0_10px_rgba(212,175,55,0.3)]'
                                 : item.type === 'filler'
                                 ? 'border-gray-200 bg-gray-50'
                                 : 'border-pink-200/60 bg-gradient-to-br from-pink-50 to-white'
-                              : 'border-gray-50 bg-[#fafafa] shadow-sm'
+                              : 'border-transparent bg-white'
                           }`}
                         >
+                          {/* 内容始终可见，涂层挡住；zone 揭开后加缩放弹跳 */}
                           <motion.div
-                            initial={{ scale: 0, opacity: 0 }}
-                            animate={revealedItems.has(index) ? {
-                              scale: [0, 1.3, 1],
-                              opacity: 1,
-                              rotate: [0, 10, -10, 0]
-                            } : { scale: 0, opacity: 0 }}
-                            transition={{
-                              type: 'spring',
-                              stiffness: 400,
-                              damping: 12,
-                            }}
+                            animate={revealed ? { scale: [0.85, 1.1, 1] } : { scale: 1 }}
+                            transition={revealed ? { type: 'spring', stiffness: 500, damping: 15 } : {}}
                             className="flex-1 flex flex-col items-center justify-between w-full h-full"
                           >
                             <div className="flex-1 flex items-center justify-center">
