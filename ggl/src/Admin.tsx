@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Lock, Save, Eye, EyeOff, Upload, Plus, Trash2, ArrowUp, ArrowDown, RotateCcw,
   ExternalLink, Loader2, CheckCircle2, AlertCircle, KeyRound, Gift, Sparkles, MessageSquare,
@@ -28,9 +28,52 @@ type PublishStatus =
   | { kind: 'error'; msg: string };
 
 export default function Admin() {
-  const [authed, setAuthed] = useState<boolean>(() => localStorage.getItem(AUTH_KEY) === '1');
+  const [authed, setAuthed] = useState<boolean>(() => {
+    // 本地已登录 或 本地已有 PAT 直接通过
+    return localStorage.getItem(AUTH_KEY) === '1' || !!localStorage.getItem(PAT_KEY);
+  });
+  const [checking, setChecking] = useState<boolean>(!authed);
   const [pwInput, setPwInput] = useState('');
   const [pwError, setPwError] = useState(false);
+  const loggedOutRef = useRef(false);
+
+  // 未登录时尝试从远端 admin-config.json 拉 PAT，有则直接登录
+  useEffect(() => {
+    if (authed) { setChecking(false); return; }
+    if (loggedOutRef.current) { setChecking(false); return; } // 主动退出后不再自动拉
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(
+          `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${CONFIG_PATH}?ref=${BRANCH}`,
+          { headers: { Accept: 'application/vnd.github+json' } }
+        );
+        if (r.ok && !cancelled) {
+          const data = await r.json();
+          const binary = atob(data.content.replace(/\n/g, ''));
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          const parsed = JSON.parse(new TextDecoder().decode(bytes));
+          if (parsed.pat) {
+            localStorage.setItem(PAT_KEY, parsed.pat);
+            localStorage.setItem(AUTH_KEY, '1');
+            if (!cancelled) setAuthed(true);
+          }
+        }
+      } catch { /* ignore */ }
+      if (!cancelled) setChecking(false);
+    })();
+    return () => { cancelled = true; };
+  }, [authed]);
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-500 text-sm">
+        <Loader2 className="w-5 h-5 animate-spin mr-2 text-[#c41e3a]" />
+        正在检查登录状态…
+      </div>
+    );
+  }
 
   if (!authed) {
     return (
@@ -80,7 +123,13 @@ export default function Admin() {
     );
   }
 
-  return <AdminDashboard onLogout={() => { localStorage.removeItem(AUTH_KEY); setAuthed(false); }} />;
+  return <AdminDashboard onLogout={() => {
+    loggedOutRef.current = true;
+    localStorage.removeItem(AUTH_KEY);
+    localStorage.removeItem(PAT_KEY);
+    setAuthed(false);
+    setChecking(false);
+  }} />;
 }
 
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
