@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Lock, Save, Eye, EyeOff, Upload, Plus, Trash2, ArrowUp, ArrowDown, RotateCcw,
-  ExternalLink, Loader2, CheckCircle2, AlertCircle, KeyRound, Gift, Sparkles,
+  ExternalLink, Loader2, CheckCircle2, AlertCircle, KeyRound, Gift, Sparkles, MessageSquare,
 } from 'lucide-react';
-import type { ItemsConfig, RawItem, ItemType } from './types';
+import type { ItemsConfig, RawItem, ItemType, ToastsConfig } from './types';
 import { ICON_MAP, ICON_NAMES, COLOR_OPTIONS } from './icons';
 import { DEFAULT_CONFIG } from './defaults';
 import { PREVIEW_KEY } from './useItems';
@@ -517,6 +517,59 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               );
             })}
           </div>
+        </section>
+
+        {/* 弹幕文案 */}
+        <section className="bg-white rounded-2xl p-5 shadow-md border border-gray-100 mb-5">
+          <div className="flex items-center gap-2 mb-3">
+            <MessageSquare className="w-4 h-4 text-[#c41e3a]" />
+            <h2 className="text-sm font-black">搞怪弹幕</h2>
+            <span className="text-[10px] text-gray-400">刮奖/转盘揭示奖品时随机弹出</span>
+          </div>
+          {(['real', 'funny', 'filler'] as const).map(type => {
+            const label = type === 'real' ? '实物奖品' : type === 'funny' ? '趣味券' : '谢谢参与';
+            const color = type === 'real' ? 'text-[#c41e3a]' : type === 'funny' ? 'text-pink-600' : 'text-gray-500';
+            const toasts = config.toasts ?? DEFAULT_CONFIG.toasts!;
+            const list = toasts[type] ?? [];
+            const updateToast = (idx: number, val: string) => {
+              const next = [...list];
+              next[idx] = val;
+              setConfig({ ...config, toasts: { ...toasts, [type]: next } });
+            };
+            const removeToast = (idx: number) => {
+              setConfig({ ...config, toasts: { ...toasts, [type]: list.filter((_, i) => i !== idx) } });
+            };
+            const addToast = () => {
+              setConfig({ ...config, toasts: { ...toasts, [type]: [...list, '新弹幕文案'] } });
+            };
+            return (
+              <div key={type} className="mb-4 last:mb-0">
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-xs font-black ${color}`}>{label}</span>
+                  <button onClick={addToast} className="text-[10px] font-bold text-[#c41e3a] hover:underline">+ 添加</button>
+                </div>
+                <div className="space-y-1.5">
+                  {list.map((text, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <span className="text-[10px] text-gray-400 font-mono w-5 shrink-0 text-right">{idx + 1}</span>
+                      <input
+                        type="text"
+                        value={text}
+                        onChange={(e) => updateToast(idx, e.target.value)}
+                        className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 focus:border-[#d4af37] outline-none text-xs"
+                      />
+                      <button onClick={() => removeToast(idx)} className="p-1 text-gray-300 hover:text-red-500">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                  {list.length === 0 && (
+                    <p className="text-[10px] text-gray-400 italic px-1">暂无弹幕，点击添加</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </section>
       </div>
 

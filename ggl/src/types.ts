@@ -9,8 +9,15 @@ export interface RawItem {
   type: ItemType;
 }
 
+export interface ToastsConfig {
+  real: string[];
+  funny: string[];
+  filler: string[];
+}
+
 export interface ItemsConfig {
   rows: number;
   cols: number;
   items: RawItem[];
+  toasts?: ToastsConfig;
 }

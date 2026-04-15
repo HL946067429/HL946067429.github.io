@@ -10,27 +10,13 @@ import type { RawItem } from './types';
 /*  幸运大转盘                                                         */
 /* ------------------------------------------------------------------ */
 
-/* 搞怪副标题 */
-const QUIPS_REAL = [
-  '男朋友的钱包已阵亡 💀',
-  '这下真得兑现了吧…',
-  '恭喜！请立即截图保存证据',
-  '建议男朋友跑路（开玩笑的）',
-];
-const QUIPS_FUNNY = [
-  '虽然不值钱但诚意满满（？）',
-  '这种奖也好意思放上来',
-  '男朋友的诚意有待商榷',
-  '使用时请面带微笑',
-];
-const QUIPS_FILLER = [
-  '命运在嘲笑你 😏',
-  '非洲大陆向你招手 🌍',
-  '安慰奖都没有，惨…',
-  '建议给男朋友一个拥抱',
-];
-const randomQuip = (type: string) => {
-  const pool = type === 'real' ? QUIPS_REAL : type === 'filler' ? QUIPS_FILLER : QUIPS_FUNNY;
+import type { ToastsConfig } from './types';
+
+const FALLBACK_TOASTS: ToastsConfig = {
+  real: ['哇塞！'], funny: ['哈哈！'], filler: ['加油！'],
+};
+const pickToast = (toasts: ToastsConfig, type: string) => {
+  const pool = type === 'real' ? toasts.real : type === 'filler' ? toasts.filler : toasts.funny;
   return pool[Math.floor(Math.random() * pool.length)];
 };
 
@@ -224,7 +210,7 @@ export default function Wheel() {
     setTimeout(() => {
       const won = items[targetIdx];
       setWonItem({ item: won, index: targetIdx });
-      setWonQuip(randomQuip(won.type));
+      setWonQuip(pickToast(config?.toasts ?? FALLBACK_TOASTS, won.type));
       setWonIndices(prev => new Set(prev).add(targetIdx));
       setShowModal(true);
       setSpinning(false);

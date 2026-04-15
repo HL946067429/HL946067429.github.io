@@ -6,31 +6,15 @@ import confetti from 'canvas-confetti';
 import { ICON_MAP } from './icons';
 import { useItems } from './useItems';
 
-/* ---------- 搞怪弹幕文案 ---------- */
-const ROAST_REAL = [
-  '男朋友的钱包在哭泣 😭',
-  '哇塞！血赚不亏！',
-  '这运气去买彩票吧！',
-  '今晚加鸡腿！🍗',
-  '男朋友要吃土了…',
-  '暴富！暴富！暴富！',
-];
-const ROAST_FUNNY = [
-  '哈哈哈这也算奖？',
-  '恭喜获得空气一瓶 🌬️',
-  '男朋友的诚意：★☆☆☆☆',
-  '这个券建议立刻使用',
-  '薅到了！薅到了！',
-  '不准嫌弃！说好的不拒收！',
-];
-const ROAST_FILLER = [
-  '哈哈哈哈非洲人实锤 🌍',
-  '抱抱男朋友消消气',
-  '命运：就不给你好的',
-  '谢谢参与 = 谢谢惠顾本店',
-  '这个位置风水不好…',
-  '别灰心，还有机会！（大概）',
-];
+import type { ToastsConfig } from './types';
+
+const FALLBACK_TOASTS: ToastsConfig = {
+  real: ['哇塞！'], funny: ['哈哈！'], filler: ['加油！'],
+};
+const pickToast = (toasts: ToastsConfig, type: string) => {
+  const pool = type === 'real' ? toasts.real : type === 'filler' ? toasts.filler : toasts.funny;
+  return pool[Math.floor(Math.random() * pool.length)];
+};
 
 type Toast = { id: number; text: string; x: number };
 
@@ -82,8 +66,8 @@ export default function App() {
     if (!config) return;
     const item = config.items[index];
     if (!item) return;
-    const pool = item.type === 'real' ? ROAST_REAL : item.type === 'funny' ? ROAST_FUNNY : ROAST_FILLER;
-    addToast(pool[Math.floor(Math.random() * pool.length)]);
+    const toasts = config.toasts ?? FALLBACK_TOASTS;
+    addToast(pickToast(toasts, item.type));
   }, [config, addToast]);
 
   if (!config) {
