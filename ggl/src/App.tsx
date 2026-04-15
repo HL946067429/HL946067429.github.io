@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Heart, Sparkles, Trophy, Star, Flower, Gift, RefreshCw, Hand } from 'lucide-react';
 import { ScratchCard } from './components/ScratchCard';
@@ -6,11 +6,48 @@ import confetti from 'canvas-confetti';
 import { ICON_MAP } from './icons';
 import { useItems } from './useItems';
 
+/* ---------- 搞怪弹幕文案 ---------- */
+const ROAST_REAL = [
+  '男朋友的钱包在哭泣 😭',
+  '哇塞！血赚不亏！',
+  '这运气去买彩票吧！',
+  '今晚加鸡腿！🍗',
+  '男朋友要吃土了…',
+  '暴富！暴富！暴富！',
+];
+const ROAST_FUNNY = [
+  '哈哈哈这也算奖？',
+  '恭喜获得空气一瓶 🌬️',
+  '男朋友的诚意：★☆☆☆☆',
+  '这个券建议立刻使用',
+  '薅到了！薅到了！',
+  '不准嫌弃！说好的不拒收！',
+];
+const ROAST_FILLER = [
+  '哈哈哈哈非洲人实锤 🌍',
+  '抱抱男朋友消消气',
+  '命运：就不给你好的',
+  '谢谢参与 = 谢谢惠顾本店',
+  '这个位置风水不好…',
+  '别灰心，还有机会！（大概）',
+];
+
+type Toast = { id: number; text: string; x: number };
+
 export default function App() {
   const { config } = useItems();
   const [isComplete, setIsComplete] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const [revealedItems, setRevealedItems] = useState<Set<number>>(new Set());
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const toastIdRef = useRef(0);
+
+  const addToast = useCallback((text: string) => {
+    const id = ++toastIdRef.current;
+    const x = 15 + Math.random() * 70; // 随机水平位置
+    setToasts(prev => [...prev, { id, text, x }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 2200);
+  }, []);
 
   const handleComplete = useCallback(() => {
     setIsComplete(true);
@@ -41,7 +78,13 @@ export default function App() {
 
   const handleZoneReveal = useCallback((index: number) => {
     setRevealedItems(prev => new Set(prev).add(index));
-  }, []);
+    // 根据奖品类型弹搞怪弹幕
+    if (!config) return;
+    const item = config.items[index];
+    if (!item) return;
+    const pool = item.type === 'real' ? ROAST_REAL : item.type === 'funny' ? ROAST_FUNNY : ROAST_FILLER;
+    addToast(pool[Math.floor(Math.random() * pool.length)]);
+  }, [config, addToast]);
 
   if (!config) {
     return (
@@ -398,7 +441,28 @@ export default function App() {
         </motion.div>
       </div>
 
-      {/* 完成后的祝福条 */}
+      {/* 搞怪弹幕 */}
+      <div className="fixed inset-0 pointer-events-none z-40 overflow-hidden">
+        <AnimatePresence>
+          {toasts.map(t => (
+            <motion.div
+              key={t.id}
+              initial={{ opacity: 0, y: 20, scale: 0.7 }}
+              animate={{ opacity: 1, y: -80, scale: 1 }}
+              exit={{ opacity: 0, y: -160, scale: 0.5 }}
+              transition={{ duration: 2, ease: 'easeOut' }}
+              className="absolute bottom-[45%]"
+              style={{ left: `${t.x}%`, transform: 'translateX(-50%)' }}
+            >
+              <div className="bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-full text-xs font-black whitespace-nowrap shadow-xl border border-white/10">
+                {t.text}
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {/* 完成后的祝福条 + 总价值 */}
       <AnimatePresence>
         {isComplete && !isFlipped && (
           <motion.div
@@ -406,7 +470,7 @@ export default function App() {
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 40, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 200, damping: 18, delay: 0.3 }}
-            className="mt-6 max-w-[380px] w-full"
+            className="mt-6 max-w-[380px] w-full space-y-3"
           >
             <div className="velvet-red border-2 border-[#d4af37] rounded-2xl px-5 py-3 shadow-xl relative overflow-hidden shine-sweep">
               <div className="absolute inset-0 bg-noise opacity-20" />
@@ -421,6 +485,22 @@ export default function App() {
                 <Sparkles className="w-5 h-5 text-[#d4af37] animate-pulse" />
               </div>
             </div>
+            {/* 搞怪总价值统计 */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.2 }}
+              className="bg-white/90 backdrop-blur-sm rounded-2xl px-5 py-3 shadow-md border border-[#d4af37]/30 text-center"
+            >
+              <p className="text-[10px] text-gray-500 font-bold mb-1">本次刮奖总价值</p>
+              <p className="text-2xl font-black text-[#c41e3a] font-mono">
+                ¥{ALL_ITEMS.reduce((sum, item) => {
+                  const n = parseInt(item.value.replace(/[^0-9]/g, ''), 10);
+                  return sum + (isNaN(n) ? 0 : n);
+                }, 0).toLocaleString()}
+              </p>
+              <p className="text-[10px] text-gray-400 mt-1 font-bold">男朋友已负债累累，请温柔对待 🥲</p>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

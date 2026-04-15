@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, Sparkles, Gift, Star, RotateCw, Trophy, X, ChevronRight, Flower, Info } from 'lucide-react';
+import { Heart, Sparkles, Gift, Star, RotateCw, Trophy, X, ChevronRight, Flower, Info, Bug } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { ICON_MAP } from './icons';
 import { useItems } from './useItems';
@@ -9,6 +9,30 @@ import type { RawItem } from './types';
 /* ------------------------------------------------------------------ */
 /*  幸运大转盘                                                         */
 /* ------------------------------------------------------------------ */
+
+/* 搞怪副标题 */
+const QUIPS_REAL = [
+  '男朋友的钱包已阵亡 💀',
+  '这下真得兑现了吧…',
+  '恭喜！请立即截图保存证据',
+  '建议男朋友跑路（开玩笑的）',
+];
+const QUIPS_FUNNY = [
+  '虽然不值钱但诚意满满（？）',
+  '这种奖也好意思放上来',
+  '男朋友的诚意有待商榷',
+  '使用时请面带微笑',
+];
+const QUIPS_FILLER = [
+  '命运在嘲笑你 😏',
+  '非洲大陆向你招手 🌍',
+  '安慰奖都没有，惨…',
+  '建议给男朋友一个拥抱',
+];
+const randomQuip = (type: string) => {
+  const pool = type === 'real' ? QUIPS_REAL : type === 'filler' ? QUIPS_FILLER : QUIPS_FUNNY;
+  return pool[Math.floor(Math.random() * pool.length)];
+};
 
 const SLICE_PAIRS = [
   ['#c41e3a', '#a0162a'],
@@ -29,7 +53,12 @@ export default function Wheel() {
   const [showModal, setShowModal] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [wonItem, setWonItem] = useState<{ item: RawItem; index: number } | null>(null);
+  const [wonQuip, setWonQuip] = useState('');
   const [allDone, setAllDone] = useState(false);
+  const [fillerStreak, setFillerStreak] = useState(0);
+  // 作弊系统
+  const [cheatPhase, setCheatPhase] = useState<'idle' | 'hacking' | 'failed'>('idle');
+  const [cheatMsg, setCheatMsg] = useState('');
 
   const items = config?.items ?? [];
   const n = items.length;
@@ -193,10 +222,19 @@ export default function Wheel() {
     setCurrentAngle(finalAngle);
 
     setTimeout(() => {
-      setWonItem({ item: items[targetIdx], index: targetIdx });
+      const won = items[targetIdx];
+      setWonItem({ item: won, index: targetIdx });
+      setWonQuip(randomQuip(won.type));
       setWonIndices(prev => new Set(prev).add(targetIdx));
       setShowModal(true);
       setSpinning(false);
+
+      // 连续谢谢参与检测
+      if (won.type === 'filler') {
+        setFillerStreak(prev => prev + 1);
+      } else {
+        setFillerStreak(0);
+      }
 
       const fire = (delay: number, opts: confetti.Options) => setTimeout(() => confetti(opts), delay);
       fire(0, { particleCount: 100, spread: 65, origin: { y: 0.5 }, colors: ['#c41e3a', '#d4af37', '#003366', '#f5d76e'] });
@@ -214,7 +252,34 @@ export default function Wheel() {
     setCurrentAngle(0);
     setShowModal(false);
     setWonItem(null);
+    setWonQuip('');
     setAllDone(false);
+    setFillerStreak(0);
+  };
+
+  // 作弊按钮
+  const triggerCheat = () => {
+    if (cheatPhase !== 'idle' || spinning) return;
+    setCheatPhase('hacking');
+    const msgs = [
+      '正在入侵转盘系统…',
+      '绕过防火墙中…',
+      '破解随机算法…',
+      '修改中奖概率…',
+      '植入木马程序…',
+    ];
+    let i = 0;
+    setCheatMsg(msgs[0]);
+    const timer = setInterval(() => {
+      i++;
+      if (i < msgs.length) {
+        setCheatMsg(msgs[i]);
+      } else {
+        clearInterval(timer);
+        setCheatPhase('failed');
+        setCheatMsg('');
+      }
+    }, 800);
   };
 
   if (!config) {
@@ -441,6 +506,15 @@ export default function Wheel() {
             <RotateCw className="w-3.5 h-3.5" /> 重新开始
           </button>
         )}
+        {/* 半隐藏的作弊按钮 */}
+        <button
+          onClick={triggerCheat}
+          disabled={cheatPhase !== 'idle' || spinning}
+          className="px-2.5 py-2.5 rounded-full bg-white/50 text-gray-300 hover:text-red-500 hover:bg-white/90 transition-all disabled:opacity-30"
+          title="?"
+        >
+          <Bug className="w-3.5 h-3.5" />
+        </button>
       </motion.div>
 
       {/* ===================== 奖品弹窗 ===================== */}
@@ -541,12 +615,34 @@ export default function Wheel() {
                   initial={{ y: 10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.3 }}
-                  className={`text-2xl font-black font-mono mb-5 ${
+                  className={`text-2xl font-black font-mono ${
                     isReal ? 'text-[#c41e3a]' : isFiller ? 'text-gray-400' : 'text-[#c41e3a]/70'
                   }`}
                 >
                   {wonItem.item.value}
                 </motion.p>
+                {/* 搞怪副标题 */}
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="text-[11px] text-gray-400 font-bold mt-1 mb-4"
+                >
+                  {wonQuip}
+                </motion.p>
+                {/* 连续谢谢参与彩蛋 */}
+                {isFiller && fillerStreak >= 2 && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', delay: 0.6 }}
+                    className="mb-4 bg-gray-900 text-white px-4 py-2 rounded-xl text-[11px] font-black"
+                  >
+                    {fillerStreak >= 3
+                      ? '🏆 非洲人认证：连续 ' + fillerStreak + ' 次谢谢参与！'
+                      : '🌍 非洲预警：已连续 ' + fillerStreak + ' 次谢谢参与…'}
+                  </motion.div>
+                )}
 
                 <button
                   onClick={() => setShowModal(false)}
@@ -593,6 +689,75 @@ export default function Wheel() {
                 <Sparkles className="w-5 h-5 text-[#d4af37] animate-pulse" />
               </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ===================== 作弊弹窗 ===================== */}
+      <AnimatePresence>
+        {cheatPhase === 'hacking' && (
+          <motion.div
+            key="cheat-hacking"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80"
+          >
+            <motion.div
+              initial={{ scale: 0.5 }}
+              animate={{ scale: 1 }}
+              className="bg-gray-900 rounded-2xl p-6 max-w-[320px] w-full text-center border border-green-500/50 shadow-[0_0_30px_rgba(0,255,0,0.2)]"
+            >
+              <div className="font-mono text-green-400 text-sm mb-4 animate-pulse">
+                {'>'} {cheatMsg}_
+              </div>
+              <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-green-500 to-green-300"
+                  initial={{ width: '0%' }}
+                  animate={{ width: '100%' }}
+                  transition={{ duration: 4, ease: 'linear' }}
+                />
+              </div>
+              <p className="text-gray-500 text-[10px] mt-3 font-mono">SYSTEM BREACH IN PROGRESS...</p>
+            </motion.div>
+          </motion.div>
+        )}
+        {cheatPhase === 'failed' && (
+          <motion.div
+            key="cheat-failed"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80"
+            onClick={() => setCheatPhase('idle')}
+          >
+            <motion.div
+              initial={{ scale: 0.3, rotateZ: 10 }}
+              animate={{ scale: 1, rotateZ: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl p-7 max-w-[320px] w-full text-center shadow-2xl border-2 border-red-400"
+            >
+              <div className="text-5xl mb-4">🚨</div>
+              <h2 className="text-xl font-black text-gray-900 mb-2">作弊失败！</h2>
+              <p className="text-sm text-gray-600 font-bold mb-1">系统检测到异常操作</p>
+              <p className="text-xs text-gray-400 mb-5">
+                处罚：请立即亲男朋友一口 💋
+              </p>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-5">
+                <p className="text-[11px] text-red-600 font-bold">
+                  ⚠️ 本转盘采用量子加密技术<br />
+                  作弊概率：0.000000%
+                </p>
+              </div>
+              <button
+                onClick={() => setCheatPhase('idle')}
+                className="w-full py-3 rounded-xl bg-gray-900 text-white text-sm font-black active:scale-95 transition"
+              >
+                我认罚 😘
+              </button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
