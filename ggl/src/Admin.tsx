@@ -4,6 +4,7 @@ import {
   ExternalLink, Loader2, CheckCircle2, AlertCircle, KeyRound, Gift, Sparkles, MessageSquare,
 } from 'lucide-react';
 import type { ItemsConfig, RawItem, ItemType, ToastsConfig } from './types';
+import { TIER_ORDER } from './types';
 import { ICON_MAP, ICON_NAMES, COLOR_OPTIONS } from './icons';
 import { DEFAULT_CONFIG } from './defaults';
 import { PREVIEW_KEY } from './useItems';
@@ -191,7 +192,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       return {
         ...c,
         items: [...c.items, {
-          id: nextId, title: '新奖品', icon: 'Gift', iconColor: 'text-pink-500', value: '¥0', type: 'funny' as ItemType,
+          id: nextId, title: '新奖品', tier: '幸运奖', icon: 'Gift', iconColor: 'text-pink-500', value: '¥0', type: 'funny' as ItemType,
         }],
       };
     });
@@ -454,6 +455,9 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               </button>
             </div>
           </div>
+          <p className="text-[11px] text-gray-500 mb-3 leading-relaxed bg-amber-50 border border-amber-200/60 rounded-lg px-3 py-2">
+            💡 <strong>奖级</strong>是抽奖时显示给玩家的标签（如"特等奖"），<strong>奖品名</strong>是实际奖品（如"三套定制键帽"），会在规则对照表里展示。常用奖级：{TIER_ORDER.join(' / ')}
+          </p>
 
           <div className="space-y-2">
             {config.items.map((item, idx) => {
@@ -469,9 +473,20 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                       type="text"
                       value={item.title}
                       onChange={(e) => updateItem(idx, { title: e.target.value })}
-                      placeholder="标题"
-                      className="col-span-2 sm:col-span-3 px-2 py-1.5 rounded-lg border border-gray-200 focus:border-[#d4af37] outline-none text-xs font-medium"
+                      placeholder="奖品名（如：三套定制键帽）"
+                      className="col-span-2 px-2 py-1.5 rounded-lg border border-gray-200 focus:border-[#d4af37] outline-none text-xs font-medium"
                     />
+                    <input
+                      type="text"
+                      list={`tier-suggestions-${idx}`}
+                      value={item.tier || ''}
+                      onChange={(e) => updateItem(idx, { tier: e.target.value })}
+                      placeholder="奖级"
+                      className="col-span-1 px-2 py-1.5 rounded-lg border border-gray-200 focus:border-[#d4af37] outline-none text-xs font-bold"
+                    />
+                    <datalist id={`tier-suggestions-${idx}`}>
+                      {TIER_ORDER.map(t => <option key={t} value={t} />)}
+                    </datalist>
                     <select
                       value={item.type}
                       onChange={(e) => updateItem(idx, { type: e.target.value as ItemType })}

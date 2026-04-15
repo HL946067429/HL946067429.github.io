@@ -5,6 +5,7 @@
     {
       "id": 1,
       "title": "三套定制键帽",
+      "tier": "特等奖",
       "icon": "Keyboard",
       "iconColor": "text-blue-600",
       "value": "¥888",
@@ -13,6 +14,7 @@
     {
       "id": 3,
       "title": "一束浪漫鲜花",
+      "tier": "一等奖",
       "icon": "Flower",
       "iconColor": "text-pink-600",
       "value": "¥520",
@@ -21,6 +23,7 @@
     {
       "id": 5,
       "title": "一份真刮刮乐",
+      "tier": "二等奖",
       "icon": "Trophy",
       "iconColor": "text-yellow-600",
       "value": "¥100",
@@ -29,6 +32,7 @@
     {
       "id": 7,
       "title": "再来一瓶空气",
+      "tier": "幸运奖",
       "icon": "Zap",
       "iconColor": "text-cyan-500",
       "value": "¥0",
@@ -37,6 +41,7 @@
     {
       "id": 8,
       "title": "陪逛街不喊累",
+      "tier": "幸运奖",
       "icon": "Star",
       "iconColor": "text-orange-500",
       "value": "¥200",
@@ -45,6 +50,7 @@
     {
       "id": 11,
       "title": "奶茶一杯",
+      "tier": "三等奖",
       "icon": "Coffee",
       "iconColor": "text-amber-800",
       "value": "¥25",
@@ -53,6 +59,7 @@
     {
       "id": 12,
       "title": "电影票两张",
+      "tier": "三等奖",
       "icon": "Ticket",
       "iconColor": "text-red-600",
       "value": "¥120",
@@ -61,6 +68,7 @@
     {
       "id": 14,
       "title": "最美称号",
+      "tier": "幸运奖",
       "icon": "Heart",
       "iconColor": "text-pink-400",
       "value": "¥∞",
@@ -69,6 +77,7 @@
     {
       "id": 19,
       "title": "谢谢参与",
+      "tier": "谢谢参与",
       "icon": "Gift",
       "iconColor": "text-gray-400",
       "value": "¥0",
@@ -77,6 +86,7 @@
     {
       "id": 20,
       "title": "谢谢参与",
+      "tier": "谢谢参与",
       "icon": "Star",
       "iconColor": "text-gray-400",
       "value": "¥0",

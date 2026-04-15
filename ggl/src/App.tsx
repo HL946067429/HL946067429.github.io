@@ -12,6 +12,7 @@ import {
 } from './sounds';
 
 import type { ToastsConfig } from './types';
+import { getTier, groupByTier } from './types';
 
 const FALLBACK_TOASTS: ToastsConfig = {
   real: ['哇塞！'], funny: ['哈哈！'], filler: ['加油！'],
@@ -285,8 +286,10 @@ export default function App() {
                             <div className="flex-1 flex items-center justify-center">
                               <IconComp className={`w-6 h-6 ${item.iconColor}`} />
                             </div>
-                            <span className="text-[8px] font-bold text-gray-600 block leading-tight text-center mt-auto tracking-tight">
-                              {item.title}
+                            <span className={`text-[10px] font-black block leading-tight text-center mt-auto tracking-tight ${
+                              item.type === 'real' ? 'text-[#c41e3a]' : item.type === 'filler' ? 'text-gray-400' : 'text-pink-600'
+                            }`}>
+                              {getTier(item)}
                             </span>
                           </motion.div>
                         </div>
@@ -373,35 +376,28 @@ export default function App() {
                     <table className="w-full text-[10px]">
                       <thead className="bg-gradient-to-r from-[#fff9e6] to-[#fff3c4] border-b border-[#d4af37]/30">
                         <tr>
-                          <th className="py-2 px-3 text-left font-bold text-gray-500">奖级</th>
+                          <th className="py-2 px-3 text-left font-bold text-gray-500 w-20">奖级</th>
                           <th className="py-2 px-3 text-right font-bold text-gray-500">对应奖品</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        <tr className="hover:bg-red-50/30 transition-colors">
-                          <td className="py-2 px-3 font-bold">
-                            <span className="inline-flex items-center gap-1">
-                              <Trophy className="w-3 h-3 text-[#d4af37]" />特等奖
-                            </span>
-                          </td>
-                          <td className="py-2 px-3 text-right font-black text-[#c41e3a]">三套定制键帽</td>
-                        </tr>
-                        <tr className="hover:bg-red-50/30 transition-colors">
-                          <td className="py-2 px-3 font-bold">
-                            <span className="inline-flex items-center gap-1">
-                              <Flower className="w-3 h-3 text-pink-500" />一等奖
-                            </span>
-                          </td>
-                          <td className="py-2 px-3 text-right font-black text-[#c41e3a]">一束浪漫鲜花</td>
-                        </tr>
-                        <tr className="hover:bg-red-50/30 transition-colors">
-                          <td className="py-2 px-3 font-bold">
-                            <span className="inline-flex items-center gap-1">
-                              <Sparkles className="w-3 h-3 text-[#003366]" />幸运奖
-                            </span>
-                          </td>
-                          <td className="py-2 px-3 text-right font-medium text-gray-600">趣味券 / 奶茶 / 电影</td>
-                        </tr>
+                        {groupByTier(ALL_ITEMS).map(group => {
+                          const isFillerGroup = group.tier === '谢谢参与';
+                          const isTopTier = group.tier === '特等奖';
+                          return (
+                            <tr key={group.tier} className="hover:bg-red-50/30 transition-colors">
+                              <td className="py-2 px-3 font-bold align-top">
+                                <span className="inline-flex items-center gap-1">
+                                  {isTopTier ? <Trophy className="w-3 h-3 text-[#d4af37]" /> : isFillerGroup ? null : <Sparkles className="w-3 h-3 text-[#d4af37]" />}
+                                  {group.tier}
+                                </span>
+                              </td>
+                              <td className={`py-2 px-3 text-right font-black ${isFillerGroup ? 'text-gray-400' : 'text-[#c41e3a]'}`}>
+                                {Array.from(new Set(group.items.map(i => i.title))).join(' / ')}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
