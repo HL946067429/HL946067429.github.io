@@ -17,6 +17,7 @@ const PAT_KEY = 'ggl:github-pat';
 const REPO_OWNER = 'HL946067429';
 const REPO_NAME = 'HL946067429.github.io';
 const DATA_PATH = 'ggl/public/items.json';
+const CONFIG_PATH = 'ggl/public/admin-config.json';
 const BRANCH = 'main';
 
 type PublishStatus =
@@ -86,9 +87,46 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [remoteSha, setRemoteSha] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [pat, setPat] = useState<string>(() => localStorage.getItem(PAT_KEY) || '');
+  const [configSha, setConfigSha] = useState<string | null>(null);
   const [showPat, setShowPat] = useState(false);
   const [status, setStatus] = useState<PublishStatus>({ kind: 'idle' });
   const [previewing, setPreviewing] = useState<boolean>(() => !!localStorage.getItem(PREVIEW_KEY));
+
+  // 首次从远端 admin-config.json 读取 PAT
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetch(
+          `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${CONFIG_PATH}?ref=${BRANCH}`,
+          { headers: { Accept: 'application/vnd.github+json' } }
+        );
+        if (r.ok) {
+          const data = await r.json();
+          setConfigSha(data.sha);
+          const binary = atob(data.content.replace(/\n/g, ''));
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          const parsed = JSON.parse(new TextDecoder().decode(bytes));
+          if (parsed.pat) {
+            setPat(parsed.pat);
+            localStorage.setItem(PAT_KEY, parsed.pat);
+          }
+        }
+      } catch {
+        // 退回本地 JSON
+        try {
+          const r = await fetch(`${import.meta.env.BASE_URL}admin-config.json`, { cache: 'no-cache' });
+          if (r.ok) {
+            const parsed = await r.json();
+            if (parsed.pat) {
+              setPat(parsed.pat);
+              localStorage.setItem(PAT_KEY, parsed.pat);
+            }
+          }
+        } catch { /* ignore */ }
+      }
+    })();
+  }, []);
 
   // 首次加载远端 items.json + sha
   useEffect(() => {
@@ -233,8 +271,53 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     }
   };
 
-  const savePat = () => { localStorage.setItem(PAT_KEY, pat); };
-  const clearPat = () => { localStorage.removeItem(PAT_KEY); setPat(''); };
+  // 保存 PAT：写 localStorage + 同步写回 GitHub admin-config.json
+  const savePat = async () => {
+    localStorage.setItem(PAT_KEY, pat);
+    if (!pat) return;
+    try {
+      // 获取最新 sha
+      let sha = configSha;
+      const shaResp = await fetch(
+        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${CONFIG_PATH}?ref=${BRANCH}`,
+        { headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${pat}` } }
+      );
+      if (shaResp.ok) {
+        const d = await shaResp.json();
+        sha = d.sha;
+      }
+      const json = JSON.stringify({ pat }, null, 2) + '\n';
+      const utf8 = new TextEncoder().encode(json);
+      let binary = '';
+      utf8.forEach(b => { binary += String.fromCharCode(b); });
+      const content = btoa(binary);
+      const putResp = await fetch(
+        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${CONFIG_PATH}`,
+        {
+          method: 'PUT',
+          headers: {
+            Accept: 'application/vnd.github+json',
+            Authorization: `Bearer ${pat}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: 'chore(ggl): update admin config',
+            content,
+            sha: sha ?? undefined,
+            branch: BRANCH,
+          }),
+        }
+      );
+      if (putResp.ok) {
+        const putJson = await putResp.json();
+        setConfigSha(putJson.content?.sha || null);
+      }
+    } catch { /* localStorage 已保存，远端失败不阻塞 */ }
+  };
+  const clearPat = () => {
+    localStorage.removeItem(PAT_KEY);
+    setPat('');
+  };
 
   if (loading || !config) {
     return (

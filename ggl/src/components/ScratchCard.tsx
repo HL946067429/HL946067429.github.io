@@ -17,15 +17,15 @@ export const ScratchCard: React.FC<ScratchCardProps> = ({
   rows = 1,
   cols = 1,
   children,
-  brushSize = 22,
-  threshold = 30,
+  brushSize = 28,
+  threshold = 35,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isComplete, setIsComplete] = useState(false);
   const [dimensions, setDimensions] = useState({ w: 0, h: 0 });
   const isDrawingRef = useRef(false);
-  const activeZoneRef = useRef<number | null>(null);
+  const lastPosRef = useRef<{ x: number; y: number } | null>(null);
   const revealedZones = useRef<Set<number>>(new Set());
 
   const getZoneRect = useCallback(
@@ -134,47 +134,22 @@ export const ScratchCard: React.FC<ScratchCardProps> = ({
       }
     }
 
-    // 格子分隔线 —— 清晰提示"每格独立"
-    const zoneW = dimensions.w / cols;
-    const zoneH = dimensions.h / rows;
-    ctx.save();
-    ctx.strokeStyle = 'rgba(120, 90, 40, 0.45)';
-    ctx.lineWidth = 1.2;
-    ctx.setLineDash([4, 3]);
-    for (let c = 1; c < cols; c++) {
-      ctx.beginPath();
-      ctx.moveTo(c * zoneW, 4);
-      ctx.lineTo(c * zoneW, dimensions.h - 4);
-      ctx.stroke();
-    }
-    for (let r = 1; r < rows; r++) {
-      ctx.beginPath();
-      ctx.moveTo(4, r * zoneH);
-      ctx.lineTo(dimensions.w - 4, r * zoneH);
-      ctx.stroke();
-    }
-    ctx.restore();
-
     // 外框
     ctx.strokeStyle = 'rgba(170, 119, 28, 0.5)';
     ctx.lineWidth = 2;
     ctx.strokeRect(1, 1, dimensions.w - 2, dimensions.h - 2);
 
-    // 每格中央的"?"
-    ctx.fillStyle = 'rgba(110, 80, 40, 0.55)';
-    ctx.font = 'bold 20px "Noto Serif SC", "Inter", sans-serif';
+    // 中央"刮我"提示
+    ctx.fillStyle = 'rgba(110, 80, 40, 0.5)';
+    ctx.font = 'bold 18px "Noto Serif SC", "Inter", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        ctx.fillText('?', c * zoneW + zoneW / 2, r * zoneH + zoneH / 2);
-      }
-    }
+    ctx.fillText('刮 我', dimensions.w / 2, dimensions.h / 2);
 
-    // 顶部与底部小提示
-    ctx.fillStyle = 'rgba(90, 80, 60, 0.75)';
+    // 顶部小提示
+    ctx.fillStyle = 'rgba(90, 80, 60, 0.6)';
     ctx.font = '600 9px "Inter", sans-serif';
-    ctx.fillText('· 逐格刮开 · SCRATCH ONE BY ONE ·', dimensions.w / 2, 10);
+    ctx.fillText('· SCRATCH TO REVEAL ·', dimensions.w / 2, 10);
 
     // 重置状态
     revealedZones.current = new Set();
@@ -199,7 +174,7 @@ export const ScratchCard: React.FC<ScratchCardProps> = ({
     return { x: cx - rect.left, y: cy - rect.top };
   };
 
-  // 检查当前格是否够比例，够则一次性擦净
+  // 检查某格是否刮够比例，够则一次性揭开
   const maybeRevealZone = useCallback(
     (index: number) => {
       const canvas = canvasRef.current;
@@ -247,39 +222,64 @@ export const ScratchCard: React.FC<ScratchCardProps> = ({
     [getZoneRect, threshold, onZoneReveal, onComplete, rows, cols, isComplete]
   );
 
-  const scratch = (x: number, y: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas || isComplete) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const zoneIndex = activeZoneRef.current;
-    if (zoneIndex === null) return;
-    if (revealedZones.current.has(zoneIndex)) return;
+  // 自由刮——不限制在某一格内，笔刷经过哪些格就检查哪些
+  const scratch = useCallback(
+    (x: number, y: number) => {
+      const canvas = canvasRef.current;
+      if (!canvas || isComplete) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
 
-    const rect = getZoneRect(zoneIndex);
-    if (!rect) return;
+      // 在两点之间插值画圆，让笔触连续不断裂
+      const last = lastPosRef.current;
+      const points: { x: number; y: number }[] = [];
+      if (last) {
+        const dx = x - last.x;
+        const dy = y - last.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const step = Math.max(2, brushSize / 4);
+        const count = Math.ceil(dist / step);
+        for (let i = 0; i <= count; i++) {
+          const t = count === 0 ? 1 : i / count;
+          points.push({ x: last.x + dx * t, y: last.y + dy * t });
+        }
+      } else {
+        points.push({ x, y });
+      }
+      lastPosRef.current = { x, y };
 
-    // 用 clip 裁剪到当前格子，确保笔刷不越界
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(rect.x, rect.y, rect.w, rect.h);
-    ctx.clip();
-    ctx.globalCompositeOperation = 'destination-out';
-    ctx.beginPath();
-    ctx.arc(x, y, brushSize, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+      // 一次性绘制所有插值点
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      for (const p of points) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, brushSize, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
 
-    maybeRevealZone(zoneIndex);
-  };
+      // 收集笔刷路径覆盖的所有格子并检查
+      const zonesToCheck = new Set<number>();
+      for (const p of points) {
+        // 检查笔刷范围四角 + 中心涉及的格子
+        for (const [ox, oy] of [[0, 0], [-brushSize, -brushSize], [brushSize, -brushSize], [-brushSize, brushSize], [brushSize, brushSize]]) {
+          const zone = getZoneAt(p.x + ox, p.y + oy);
+          if (zone !== null && !revealedZones.current.has(zone)) {
+            zonesToCheck.add(zone);
+          }
+        }
+      }
+      for (const z of zonesToCheck) {
+        maybeRevealZone(z);
+      }
+    },
+    [isComplete, brushSize, getZoneAt, maybeRevealZone]
+  );
 
   const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
     const { x, y } = getPos(e);
-    const zone = getZoneAt(x, y);
-    if (zone === null) return;
-    if (revealedZones.current.has(zone)) return;
     isDrawingRef.current = true;
-    activeZoneRef.current = zone;
+    lastPosRef.current = null;
     scratch(x, y);
   };
 
@@ -291,7 +291,7 @@ export const ScratchCard: React.FC<ScratchCardProps> = ({
 
   const handleEnd = () => {
     isDrawingRef.current = false;
-    activeZoneRef.current = null;
+    lastPosRef.current = null;
   };
 
   return (

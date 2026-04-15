@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, Sparkles, Gift, Star, RotateCw, Trophy, X, ChevronRight } from 'lucide-react';
+import { Heart, Sparkles, Gift, Star, RotateCw, Trophy, X, ChevronRight, Flower, Info } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { ICON_MAP } from './icons';
 import { useItems } from './useItems';
@@ -27,6 +27,7 @@ export default function Wheel() {
   const [currentAngle, setCurrentAngle] = useState(0);
   const [wonIndices, setWonIndices] = useState<Set<number>>(new Set());
   const [showModal, setShowModal] = useState(false);
+  const [showRules, setShowRules] = useState(false);
   const [wonItem, setWonItem] = useState<{ item: RawItem; index: number } | null>(null);
   const [allDone, setAllDone] = useState(false);
 
@@ -259,11 +260,20 @@ export default function Wheel() {
           <span className="text-[#d4af37] text-[10px] font-bold tracking-[0.3em]">LUCKY WHEEL · ONE YEAR</span>
           <div className="h-[1px] w-8 bg-gradient-to-l from-transparent to-[#d4af37]" />
         </div>
-        <div className="mt-3 inline-flex items-center gap-2 bg-white/70 backdrop-blur-sm px-4 py-1.5 rounded-full border border-[#d4af37]/30 shadow-sm">
-          <span className="text-gray-500 text-xs font-bold">已揭晓</span>
-          <span className="font-black text-[#c41e3a] text-sm">{wonIndices.size}</span>
-          <span className="text-gray-400 text-xs">/</span>
-          <span className="font-black text-gray-700 text-sm">{n}</span>
+        <div className="mt-3 flex items-center justify-center gap-2">
+          <div className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-sm px-4 py-1.5 rounded-full border border-[#d4af37]/30 shadow-sm">
+            <span className="text-gray-500 text-xs font-bold">已揭晓</span>
+            <span className="font-black text-[#c41e3a] text-sm">{wonIndices.size}</span>
+            <span className="text-gray-400 text-xs">/</span>
+            <span className="font-black text-gray-700 text-sm">{n}</span>
+          </div>
+          <button
+            onClick={() => setShowRules(true)}
+            className="inline-flex items-center gap-1.5 bg-white/70 backdrop-blur-sm px-3.5 py-1.5 rounded-full border border-[#d4af37]/30 shadow-sm text-gray-600 text-xs font-bold hover:border-[#d4af37] hover:shadow-md transition-all"
+          >
+            <Info className="w-3.5 h-3.5 text-[#d4af37]" />
+            规则
+          </button>
         </div>
       </motion.div>
 
@@ -583,6 +593,148 @@ export default function Wheel() {
                 <Sparkles className="w-5 h-5 text-[#d4af37] animate-pulse" />
               </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ===================== 规则弹窗 ===================== */}
+      <AnimatePresence>
+        {showRules && (
+          <motion.div
+            key="rules-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowRules(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.3, y: 60 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.8, y: 30, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 280, damping: 18 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-gradient-to-b from-white via-white to-[#fffdf7] rounded-3xl p-6 shadow-[0_25px_60px_rgba(0,0,0,0.3)] max-w-[380px] w-full relative overflow-hidden border-2 border-[#d4af37]/30"
+            >
+              <div className="absolute inset-0 bg-noise pointer-events-none" />
+              <div className="absolute inset-0 bg-paper opacity-[0.04] pointer-events-none" />
+              {/* 装饰角花 */}
+              <div className="absolute top-3 left-3 w-5 h-5 border-t-2 border-l-2 border-[#d4af37]/50 rounded-tl-lg" />
+              <div className="absolute top-3 right-3 w-5 h-5 border-t-2 border-r-2 border-[#d4af37]/50 rounded-tr-lg" />
+              <div className="absolute bottom-3 left-3 w-5 h-5 border-b-2 border-l-2 border-[#d4af37]/50 rounded-bl-lg" />
+              <div className="absolute bottom-3 right-3 w-5 h-5 border-b-2 border-r-2 border-[#d4af37]/50 rounded-br-lg" />
+
+              {/* 关闭 */}
+              <button
+                onClick={() => setShowRules(false)}
+                className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-gray-600 transition z-10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Header */}
+              <div className="flex items-center gap-2 mb-5 relative z-10">
+                <div className="w-10 h-10 bg-gradient-to-br from-red-50 to-red-100 rounded-full flex items-center justify-center border border-red-200/50 shadow-sm">
+                  <Heart className="w-5 h-5 text-red-500 fill-current" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5 text-sm font-black text-[#003366]">
+                    <Star className="w-3.5 h-3.5 fill-current text-[#d4af37]" />
+                    公益体彩 乐善人生
+                  </div>
+                  <span className="text-[9px] text-gray-400 font-mono tracking-widest uppercase">Lucky Wheel · Official Rules</span>
+                </div>
+              </div>
+
+              {/* 使用须知 */}
+              <div className="space-y-4 relative z-10">
+                <section>
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <div className="w-1 h-4 bg-gradient-to-b from-[#c41e3a] to-[#003366] rounded-full" />
+                    <h3 className="text-xs font-black uppercase tracking-widest text-gray-900">使用须知</h3>
+                    <div className="flex-1 h-[1px] bg-gradient-to-r from-gray-200 to-transparent" />
+                  </div>
+                  <ul className="text-[10px] space-y-1.5 text-gray-600 font-medium leading-relaxed list-disc list-inside px-1 marker:text-[#c41e3a]">
+                    <li>本券仅限一周年纪念使用，最终解释权归男朋友所有。</li>
+                    <li>点击 GO 按钮旋转转盘，每次随机揭示一个奖品。</li>
+                    <li>奖品包含实物与搞怪券，请理性对待，不得拒收。</li>
+                    <li>如抽到"谢谢参与"，请给男朋友一个拥抱作为安慰。</li>
+                  </ul>
+                </section>
+
+                {/* 奖等对照 */}
+                <section>
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <div className="w-1 h-4 bg-gradient-to-b from-[#c41e3a] to-[#003366] rounded-full" />
+                    <h3 className="text-xs font-black uppercase tracking-widest text-gray-900">奖等对照</h3>
+                    <div className="flex-1 h-[1px] bg-gradient-to-r from-gray-200 to-transparent" />
+                  </div>
+                  <div className="border border-[#d4af37]/30 rounded-xl overflow-hidden shadow-sm bg-white/60 backdrop-blur-sm">
+                    <table className="w-full text-[10px]">
+                      <thead className="bg-gradient-to-r from-[#fff9e6] to-[#fff3c4] border-b border-[#d4af37]/30">
+                        <tr>
+                          <th className="py-2 px-3 text-left font-bold text-gray-500">奖级</th>
+                          <th className="py-2 px-3 text-right font-bold text-gray-500">对应奖品</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        <tr className="hover:bg-red-50/30 transition-colors">
+                          <td className="py-2 px-3 font-bold">
+                            <span className="inline-flex items-center gap-1">
+                              <Trophy className="w-3 h-3 text-[#d4af37]" />特等奖
+                            </span>
+                          </td>
+                          <td className="py-2 px-3 text-right font-black text-[#c41e3a]">三套定制键帽</td>
+                        </tr>
+                        <tr className="hover:bg-red-50/30 transition-colors">
+                          <td className="py-2 px-3 font-bold">
+                            <span className="inline-flex items-center gap-1">
+                              <Flower className="w-3 h-3 text-pink-500" />一等奖
+                            </span>
+                          </td>
+                          <td className="py-2 px-3 text-right font-black text-[#c41e3a]">一束浪漫鲜花</td>
+                        </tr>
+                        <tr className="hover:bg-red-50/30 transition-colors">
+                          <td className="py-2 px-3 font-bold">
+                            <span className="inline-flex items-center gap-1">
+                              <Sparkles className="w-3 h-3 text-[#003366]" />幸运奖
+                            </span>
+                          </td>
+                          <td className="py-2 px-3 text-right font-medium text-gray-600">趣味券 / 奶茶 / 电影</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+
+                {/* 浪漫寄语 */}
+                <section>
+                  <div className="bg-gradient-to-br from-red-50/70 to-pink-50/70 border border-red-100/60 rounded-xl p-3.5 relative overflow-hidden">
+                    <div className="absolute top-2 right-2 opacity-20">
+                      <Heart className="w-7 h-7 text-red-400 fill-current" />
+                    </div>
+                    <p className="text-[11px] leading-relaxed text-gray-600 font-medium italic relative z-10">
+                      "每一次旋转，都是命运的小惊喜——<br />
+                      就像遇见你，是我最大的幸运。"
+                    </p>
+                    <p className="text-right text-[9px] text-gray-400 mt-2 tracking-widest">— FOR YOU, WITH LOVE</p>
+                  </div>
+                </section>
+              </div>
+
+              {/* 关闭按钮 */}
+              <button
+                onClick={() => setShowRules(false)}
+                className="mt-5 w-full py-3 rounded-xl text-sm font-black tracking-wider shadow-lg hover:shadow-xl active:scale-[0.97] transition-all relative z-10"
+                style={{
+                  background: 'linear-gradient(135deg, #c41e3a 0%, #a0162a 100%)',
+                  color: GOLD,
+                  boxShadow: '0 4px 15px rgba(196,30,58,0.4)',
+                }}
+              >
+                知道啦
+              </button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
