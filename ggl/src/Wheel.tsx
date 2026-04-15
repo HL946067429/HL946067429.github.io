@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+type Toast = { id: number; text: string; x: number };
 import { motion, AnimatePresence } from 'motion/react';
 import { Heart, Sparkles, Gift, Star, RotateCw, Trophy, X, ChevronRight, Flower, Info, Bug, Volume2, VolumeX } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -51,6 +52,15 @@ export default function Wheel() {
   const [cheatPhase, setCheatPhase] = useState<'idle' | 'hacking' | 'failed'>('idle');
   const [cheatMsg, setCheatMsg] = useState('');
   const [muted, setMuted] = useMute();
+  // 搞怪弹幕
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const toastIdRef = useRef(0);
+  const addToast = useCallback((text: string) => {
+    const id = ++toastIdRef.current;
+    const x = 15 + Math.random() * 70;
+    setToasts(prev => [...prev, { id, text, x }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 2200);
+  }, []);
 
   const items = config?.items ?? [];
   const n = items.length;
@@ -245,6 +255,9 @@ export default function Wheel() {
       if (won.type === 'real') { playWinReal(); vibrateBigWin(); }
       else if (won.type === 'filler') { playLose(); vibrateLose(); }
       else { playWinFunny(); vibrateWin(); }
+
+      // 搞怪弹幕（与弹窗同时弹出）
+      addToast(pickToast(config?.toasts ?? FALLBACK_TOASTS, won.type));
 
       // 连续谢谢参与检测
       if (won.type === 'filler') {
@@ -709,6 +722,27 @@ export default function Wheel() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* 搞怪弹幕 */}
+      <div className="fixed inset-0 pointer-events-none z-40 overflow-hidden">
+        <AnimatePresence>
+          {toasts.map(t => (
+            <motion.div
+              key={t.id}
+              initial={{ opacity: 0, y: 20, scale: 0.7 }}
+              animate={{ opacity: 1, y: -80, scale: 1 }}
+              exit={{ opacity: 0, y: -160, scale: 0.5 }}
+              transition={{ duration: 2, ease: 'easeOut' }}
+              className="absolute bottom-[45%]"
+              style={{ left: `${t.x}%`, transform: 'translateX(-50%)' }}
+            >
+              <div className="bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-full text-xs font-black whitespace-nowrap shadow-xl border border-white/10">
+                {t.text}
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
 
       {/* ===================== 作弊弹窗 ===================== */}
       <AnimatePresence>
