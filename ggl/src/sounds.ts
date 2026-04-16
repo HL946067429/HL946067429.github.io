@@ -156,6 +156,20 @@ export const playReveal = () => {
   tone(880, 0.08, 'triangle', 0.12);
 };
 
+// 红包弹出
+export const playEnvelope = () => {
+  tone(392, 0.1, 'triangle', 0.15);
+  tone(523, 0.15, 'triangle', 0.12, 0.08);
+};
+
+// 拆红包
+export const playOpenEnvelope = () => {
+  tone(523, 0.08, 'triangle', 0.2);
+  tone(659, 0.08, 'triangle', 0.18, 0.06);
+  tone(784, 0.08, 'triangle', 0.18, 0.12);
+  tone(1047, 0.4, 'sine', 0.15, 0.18);
+};
+
 // 转盘咔嗒
 export const playTick = (volume = 0.08) => {
   const ctx = getCtx();

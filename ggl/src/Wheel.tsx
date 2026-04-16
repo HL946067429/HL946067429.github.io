@@ -8,7 +8,8 @@ import { useItems } from './useItems';
 import { useMute } from './useMute';
 import {
   playWinReal, playWinFunny, playLose, playTick, playAllDone,
-  playHack, playAlarm, vibrate, vibrateWin, vibrateBigWin, vibrateLose,
+  playHack, playAlarm, playEnvelope, playOpenEnvelope,
+  vibrate, vibrateWin, vibrateBigWin, vibrateLose,
 } from './sounds';
 import type { RawItem } from './types';
 import { getTier, groupByTier } from './types';
@@ -64,6 +65,8 @@ export default function Wheel() {
   const [cheatPhase, setCheatPhase] = useState<'idle' | 'hacking' | 'failed'>('idle');
   const [cheatMsg, setCheatMsg] = useState('');
   const [muted, setMuted] = useMute();
+  // 红包模式
+  const [envelope, setEnvelope] = useState<'sealed' | 'opening' | null>(null);
   // 搞怪弹幕
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastIdRef = useRef(0);
@@ -81,6 +84,33 @@ export default function Wheel() {
   const remainingSpins = Math.max(0, maxSpins - spinsUsed);
   const hasWonReal = items.some((item, i) => wonIndices.has(i) && item.type === 'real');
   const spinsExhausted = remainingSpins <= 0;
+
+  // 摇一摇触发转盘
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let lastShake = 0;
+    let lastX = 0, lastY = 0, lastZ = 0;
+    const threshold = 25; // 加速度阈值
+    const cooldown = 2000; // 摇后冷却
+
+    const handler = (e: DeviceMotionEvent) => {
+      const acc = e.accelerationIncludingGravity;
+      if (!acc) return;
+      const { x = 0, y = 0, z = 0 } = acc;
+      const delta = Math.abs(x - lastX) + Math.abs(y - lastY) + Math.abs(z - lastZ);
+      lastX = x!; lastY = y!; lastZ = z!;
+      if (delta > threshold && Date.now() - lastShake > cooldown) {
+        lastShake = Date.now();
+        // 触发 spin（如果可以转的话）
+        if (!spinning && !spinsExhausted && !allDone && !envelope && !showModal && !showRules) {
+          spin();
+        }
+      }
+    };
+
+    window.addEventListener('devicemotion', handler);
+    return () => window.removeEventListener('devicemotion', handler);
+  }, [spinning, spinsExhausted, allDone, envelope, showModal, showRules]);
 
   // 持久化到 localStorage
   useEffect(() => {
@@ -280,32 +310,12 @@ export default function Wheel() {
       setWonQuip(pickToast(config?.toasts ?? FALLBACK_TOASTS, won.type));
       setWonIndices(prev => new Set(prev).add(targetIdx));
       setSpinsUsed(prev => prev + 1);
-      setShowModal(true);
       setSpinning(false);
 
-      // 音效 + 震动
-      if (won.type === 'real') { playWinReal(); vibrateBigWin(); }
-      else if (won.type === 'filler') { playLose(); vibrateLose(); }
-      else { playWinFunny(); vibrateWin(); }
-
-      // 搞怪弹幕（与弹窗同时弹出）
-      addToast(pickToast(config?.toasts ?? FALLBACK_TOASTS, won.type));
-
-      // 连续谢谢参与检测
-      if (won.type === 'filler') {
-        setFillerStreak(prev => prev + 1);
-      } else {
-        setFillerStreak(0);
-      }
-
-      const fire = (delay: number, opts: confetti.Options) => setTimeout(() => confetti(opts), delay);
-      fire(0, { particleCount: 100, spread: 65, origin: { y: 0.5 }, colors: ['#c41e3a', '#d4af37', '#003366', '#f5d76e'] });
-      fire(200, { particleCount: 50, angle: 60, spread: 50, origin: { x: 0, y: 0.6 }, colors: ['#c41e3a', '#d4af37'] });
-      fire(400, { particleCount: 50, angle: 120, spread: 50, origin: { x: 1, y: 0.6 }, colors: ['#c41e3a', '#d4af37'] });
-
-      if (wonIndices.size + 1 >= n || spinsUsed + 1 >= maxSpins) {
-        setTimeout(() => { setAllDone(true); playAllDone(); vibrateBigWin(); }, 1500);
-      }
+      // 弹出红包（封口状态），等玩家点击拆开
+      setEnvelope('sealed');
+      playEnvelope();
+      vibrate(80);
     }, 4500);
   };
 
@@ -320,6 +330,44 @@ export default function Wheel() {
     setFillerStreak(0);
     localStorage.removeItem(SPINS_KEY);
     localStorage.removeItem(WON_KEY);
+  };
+
+  // 拆红包
+  const openEnvelope = () => {
+    if (envelope !== 'sealed' || !wonItem) return;
+    setEnvelope('opening');
+    playOpenEnvelope();
+
+    // 音效 + 震动
+    const won = wonItem.item;
+    if (won.type === 'real') { setTimeout(playWinReal, 300); vibrateBigWin(); }
+    else if (won.type === 'filler') { setTimeout(playLose, 300); vibrateLose(); }
+    else { setTimeout(playWinFunny, 300); vibrateWin(); }
+
+    // 弹幕
+    addToast(pickToast(config?.toasts ?? FALLBACK_TOASTS, won.type));
+
+    // 连续谢谢参与检测
+    if (won.type === 'filler') {
+      setFillerStreak(prev => prev + 1);
+    } else {
+      setFillerStreak(0);
+    }
+
+    // 彩纸
+    const fire = (delay: number, opts: confetti.Options) => setTimeout(() => confetti(opts), delay);
+    fire(300, { particleCount: 100, spread: 65, origin: { y: 0.5 }, colors: ['#c41e3a', '#d4af37', '#003366', '#f5d76e'] });
+    fire(500, { particleCount: 50, angle: 60, spread: 50, origin: { x: 0, y: 0.6 }, colors: ['#c41e3a', '#d4af37'] });
+    fire(700, { particleCount: 50, angle: 120, spread: 50, origin: { x: 1, y: 0.6 }, colors: ['#c41e3a', '#d4af37'] });
+
+    // 延迟后切换到奖品弹窗
+    setTimeout(() => {
+      setEnvelope(null);
+      setShowModal(true);
+      if (wonIndices.size >= n || spinsUsed >= maxSpins) {
+        setTimeout(() => { setAllDone(true); playAllDone(); vibrateBigWin(); }, 1500);
+      }
+    }, 1200);
   };
 
   // 作弊按钮
@@ -512,7 +560,7 @@ export default function Wheel() {
             ) : (
               <div className="flex flex-col items-center leading-none">
                 <span className="text-[22px] font-black text-[#d4af37] drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]">GO</span>
-                <span className="text-[8px] font-bold text-[#d4af37]/60 tracking-widest mt-0.5">SPIN</span>
+                <span className="text-[8px] font-bold text-[#d4af37]/60 tracking-widest mt-0.5">📱 摇一摇</span>
               </div>
             )}
           </button>
@@ -594,6 +642,162 @@ export default function Wheel() {
           <Bug className="w-3.5 h-3.5" />
         </button>
       </motion.div>
+
+      {/* ===================== 红包弹窗 ===================== */}
+      <AnimatePresence>
+        {envelope && wonItem && (
+          <motion.div
+            key="envelope-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
+          >
+            {/* 封口状态：等玩家点击 */}
+            {envelope === 'sealed' && (
+              <motion.div
+                initial={{ scale: 0.3, y: 100, rotateZ: -10 }}
+                animate={{ scale: 1, y: 0, rotateZ: 0 }}
+                transition={{ type: 'spring', stiffness: 250, damping: 16 }}
+                onClick={openEnvelope}
+                className="relative cursor-pointer select-none"
+              >
+                {/* 红包主体 */}
+                <div className="w-[260px] h-[360px] rounded-3xl relative overflow-hidden shadow-[0_20px_60px_rgba(196,30,58,0.5)]"
+                  style={{ background: 'linear-gradient(135deg, #e63946 0%, #c41e3a 40%, #a0162a 100%)' }}
+                >
+                  {/* 装饰图案 */}
+                  <div className="absolute inset-0 opacity-[0.08] pointer-events-none">
+                    <div className="absolute inset-0 bg-[radial-gradient(#d4af37_1px,transparent_1px)] [background-size:14px_14px]" />
+                  </div>
+
+                  {/* 顶部金色封口 */}
+                  <div className="absolute top-0 left-0 right-0 h-[140px]"
+                    style={{
+                      background: 'linear-gradient(180deg, #f5d76e 0%, #d4af37 60%, #aa771c 100%)',
+                      borderRadius: '24px 24px 0 0',
+                      clipPath: 'ellipse(65% 100% at 50% 0%)',
+                    }}
+                  >
+                    <div className="absolute inset-0 opacity-10">
+                      <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.3)_1px,transparent_1px)] [background-size:8px_8px]" />
+                    </div>
+                  </div>
+
+                  {/* 中央圆形印章 */}
+                  <div className="absolute top-[90px] left-1/2 -translate-x-1/2 w-[100px] h-[100px] rounded-full flex items-center justify-center z-10"
+                    style={{
+                      background: 'linear-gradient(135deg, #f5d76e, #d4af37)',
+                      boxShadow: '0 8px 20px rgba(170,119,28,0.5), inset 0 -2px 4px rgba(0,0,0,0.1)',
+                      border: '4px solid #aa771c',
+                    }}
+                  >
+                    <span className="text-[#8b0f24] text-3xl font-black font-serif drop-shadow-sm">福</span>
+                  </div>
+
+                  {/* 奖级文字 */}
+                  <div className="absolute bottom-[90px] left-0 right-0 text-center">
+                    <motion.p
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="text-[#d4af37] text-3xl font-black tracking-[0.2em] font-serif drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]"
+                    >
+                      {getTier(wonItem.item)}
+                    </motion.p>
+                  </div>
+
+                  {/* 底部提示 */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: [0, 1, 0.5, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                    className="absolute bottom-6 left-0 right-0 text-center"
+                  >
+                    <span className="text-[#d4af37]/80 text-xs font-bold tracking-widest">👆 点击拆开</span>
+                  </motion.div>
+                </div>
+
+                {/* 浮动金币装饰 */}
+                {[...Array(6)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    className="absolute text-2xl pointer-events-none"
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{
+                      opacity: [0, 0.8, 0],
+                      scale: [0.5, 1.2, 0.5],
+                      y: [0, -40 - Math.random() * 40, 0],
+                      x: [0, (Math.random() - 0.5) * 80, 0],
+                    }}
+                    transition={{ duration: 2 + Math.random(), repeat: Infinity, delay: i * 0.4 }}
+                    style={{ top: '40%', left: `${20 + i * 12}%` }}
+                  >
+                    ✨
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+
+            {/* 拆开动画 */}
+            {envelope === 'opening' && (
+              <motion.div
+                initial={{ scale: 1 }}
+                animate={{ scale: [1, 1.15, 0], rotateZ: [0, 0, 15], opacity: [1, 1, 0] }}
+                transition={{ duration: 1, ease: 'easeIn' }}
+                className="relative"
+              >
+                <div className="w-[260px] h-[360px] rounded-3xl overflow-hidden shadow-2xl"
+                  style={{ background: 'linear-gradient(135deg, #e63946, #c41e3a, #a0162a)' }}
+                >
+                  {/* 拆裂效果 —— 光芒爆发 */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: [0, 1, 0], scale: [0.5, 3, 5] }}
+                    transition={{ duration: 0.8 }}
+                    className="absolute inset-0 flex items-center justify-center"
+                  >
+                    <div className="w-32 h-32 rounded-full bg-[radial-gradient(circle,rgba(255,215,0,0.8),transparent_70%)]" />
+                  </motion.div>
+
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <motion.span
+                      initial={{ scale: 1 }}
+                      animate={{ scale: [1, 2, 3], opacity: [1, 1, 0] }}
+                      transition={{ duration: 0.8 }}
+                      className="text-[60px]"
+                    >
+                      🧧
+                    </motion.span>
+                  </div>
+                </div>
+
+                {/* 金币爆发 */}
+                {[...Array(12)].map((_, i) => {
+                  const angle = (i / 12) * Math.PI * 2;
+                  return (
+                    <motion.div
+                      key={i}
+                      className="absolute text-xl pointer-events-none"
+                      initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+                      animate={{
+                        x: Math.cos(angle) * 160,
+                        y: Math.sin(angle) * 160,
+                        opacity: 0,
+                        scale: 0.3,
+                      }}
+                      transition={{ duration: 0.8, ease: 'easeOut' }}
+                      style={{ top: '50%', left: '50%', marginTop: -12, marginLeft: -12 }}
+                    >
+                      {i % 3 === 0 ? '🪙' : i % 3 === 1 ? '✨' : '💰'}
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ===================== 奖品弹窗 ===================== */}
       <AnimatePresence>
