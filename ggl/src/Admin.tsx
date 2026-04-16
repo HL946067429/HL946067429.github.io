@@ -269,56 +269,75 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     if (mismatch) {
       if (!confirm(`当前奖品数 ${config.items.length} ≠ 格子数 ${totalCells}，确定仍然发布？`)) return;
     }
-    setStatus({ kind: 'loading', msg: '正在获取最新版本号…' });
+    setStatus({ kind: 'loading', msg: '正在提交到 GitHub…' });
     try {
-      // 1. 重新取一次 sha（避免冲突）
-      let sha = remoteSha;
-      const shaResp = await fetch(
-        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DATA_PATH}?ref=${BRANCH}`,
-        { headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${pat}` } }
-      );
-      if (shaResp.ok) {
-        const d = await shaResp.json();
-        sha = d.sha;
-      }
-
-      // 2. PUT 新内容
-      setStatus({ kind: 'loading', msg: '正在提交到 GitHub…' });
-      const json = JSON.stringify(config, null, 2) + '\n';
-      // base64 编码（支持中文）
-      const utf8 = new TextEncoder().encode(json);
-      let binary = '';
-      utf8.forEach(b => { binary += String.fromCharCode(b); });
-      const content = btoa(binary);
-
-      const putResp = await fetch(
-        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DATA_PATH}`,
-        {
-          method: 'PUT',
-          headers: {
-            Accept: 'application/vnd.github+json',
-            Authorization: `Bearer ${pat}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            message: 'chore(ggl): update items via admin panel',
-            content,
-            sha: sha ?? undefined,
-            branch: BRANCH,
-          }),
-        }
-      );
-      if (!putResp.ok) {
-        const err = await putResp.json().catch(() => ({}));
-        throw new Error(err.message || `HTTP ${putResp.status}`);
-      }
-      const putJson = await putResp.json();
-      setRemoteSha(putJson.content?.sha || null);
-      localStorage.setItem(PAT_KEY, pat); // 保存 PAT
+      const content = toBase64(JSON.stringify(config, null, 2) + '\n');
+      const result = await putWithRetry(DATA_PATH, pat, content, 'chore(ggl): update items via admin panel', remoteSha);
+      if (!result.ok) throw new Error(result.error || '发布失败');
+      setRemoteSha(result.sha);
+      localStorage.setItem(PAT_KEY, pat);
       setStatus({ kind: 'success', msg: '发布成功！Actions 1-2 分钟后线上生效' });
     } catch (e: any) {
       setStatus({ kind: 'error', msg: e.message || '未知错误' });
     }
+  };
+
+  // 辅助：获取文件最新 sha（带 auth → 不带 auth → 缓存兜底）
+  const fetchSha = async (path: string, token: string, cached: string | null): Promise<string | null> => {
+    const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?ref=${BRANCH}`;
+    for (const auth of [true, false]) {
+      try {
+        const h: Record<string, string> = { Accept: 'application/vnd.github+json' };
+        if (auth && token) h.Authorization = `Bearer ${token}`;
+        const r = await fetch(url, { headers: h });
+        if (r.ok) {
+          const d = await r.json();
+          return d.sha as string;
+        }
+      } catch { /* try next */ }
+    }
+    return cached;
+  };
+
+  // 辅助：执行 PUT，如果 409 则重新拉 sha 重试一次
+  const putWithRetry = async (
+    path: string, token: string, content: string, message: string, cachedSha: string | null,
+  ): Promise<{ ok: boolean; sha: string | null; error?: string }> => {
+    let sha = await fetchSha(path, token, cachedSha);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const r = await fetch(
+        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`,
+        {
+          method: 'PUT',
+          headers: {
+            Accept: 'application/vnd.github+json',
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message, content, sha: sha ?? undefined, branch: BRANCH }),
+        }
+      );
+      if (r.ok) {
+        const d = await r.json();
+        return { ok: true, sha: d.content?.sha || null };
+      }
+      if (r.status === 409 && attempt === 0) {
+        // sha 冲突，重新拉一次
+        sha = await fetchSha(path, token, null);
+        continue;
+      }
+      const err = await r.json().catch(() => ({}));
+      return { ok: false, sha: null, error: err.message || `HTTP ${r.status}` };
+    }
+    return { ok: false, sha: null, error: '409 Conflict after retry' };
+  };
+
+  // base64 编码辅助（支持中文）
+  const toBase64 = (str: string) => {
+    const utf8 = new TextEncoder().encode(str);
+    let binary = '';
+    utf8.forEach(b => { binary += String.fromCharCode(b); });
+    return btoa(binary);
   };
 
   // 保存 PAT：写 localStorage + 同步写回 GitHub admin-config.json
@@ -326,42 +345,9 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     localStorage.setItem(PAT_KEY, pat);
     if (!pat) return;
     try {
-      // 获取最新 sha
-      let sha = configSha;
-      const shaResp = await fetch(
-        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${CONFIG_PATH}?ref=${BRANCH}`,
-        { headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${pat}` } }
-      );
-      if (shaResp.ok) {
-        const d = await shaResp.json();
-        sha = d.sha;
-      }
-      const json = JSON.stringify({ pat }, null, 2) + '\n';
-      const utf8 = new TextEncoder().encode(json);
-      let binary = '';
-      utf8.forEach(b => { binary += String.fromCharCode(b); });
-      const content = btoa(binary);
-      const putResp = await fetch(
-        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${CONFIG_PATH}`,
-        {
-          method: 'PUT',
-          headers: {
-            Accept: 'application/vnd.github+json',
-            Authorization: `Bearer ${pat}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            message: 'chore(ggl): update admin config',
-            content,
-            sha: sha ?? undefined,
-            branch: BRANCH,
-          }),
-        }
-      );
-      if (putResp.ok) {
-        const putJson = await putResp.json();
-        setConfigSha(putJson.content?.sha || null);
-      }
+      const content = toBase64(JSON.stringify({ pat }, null, 2) + '\n');
+      const result = await putWithRetry(CONFIG_PATH, pat, content, 'chore(ggl): update admin config', configSha);
+      if (result.ok) setConfigSha(result.sha);
     } catch { /* localStorage 已保存，远端失败不阻塞 */ }
   };
   const clearPat = () => {
