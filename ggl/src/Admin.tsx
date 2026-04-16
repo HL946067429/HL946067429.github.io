@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import type { ItemsConfig, RawItem, ItemType, ToastsConfig } from './types';
 import { TIER_ORDER } from './types';
+import { encrypt, decrypt } from './crypto';
 import { ICON_MAP, ICON_NAMES, COLOR_OPTIONS } from './icons';
 import { DEFAULT_CONFIG } from './defaults';
 import { PREVIEW_KEY } from './useItems';
@@ -26,6 +27,35 @@ type PublishStatus =
   | { kind: 'loading'; msg: string }
   | { kind: 'success'; msg: string }
   | { kind: 'error'; msg: string };
+
+/** 从 GitHub API 返回的 admin-config.json 内容中提取 PAT（支持加密/明文） */
+async function extractPatFromContent(base64Content: string): Promise<string | null> {
+  try {
+    const binary = atob(base64Content.replace(/\n/g, ''));
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const parsed = JSON.parse(new TextDecoder().decode(bytes));
+    // 新格式：加密
+    if (parsed.pat_enc) {
+      return await decrypt(parsed.pat_enc, ADMIN_PASSWORD);
+    }
+    // 旧格式：明文兼容
+    if (parsed.pat) return parsed.pat;
+  } catch { /* ignore */ }
+  return null;
+}
+
+/** 从本地 JSON fetch 提取 PAT */
+async function extractPatFromLocal(url: string): Promise<string | null> {
+  try {
+    const r = await fetch(url, { cache: 'no-cache' });
+    if (!r.ok) return null;
+    const parsed = await r.json();
+    if (parsed.pat_enc) return await decrypt(parsed.pat_enc, ADMIN_PASSWORD);
+    if (parsed.pat) return parsed.pat;
+  } catch { /* ignore */ }
+  return null;
+}
 
 export default function Admin() {
   const [authed, setAuthed] = useState<boolean>(() => {
@@ -50,12 +80,9 @@ export default function Admin() {
         );
         if (r.ok && !cancelled) {
           const data = await r.json();
-          const binary = atob(data.content.replace(/\n/g, ''));
-          const bytes = new Uint8Array(binary.length);
-          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-          const parsed = JSON.parse(new TextDecoder().decode(bytes));
-          if (parsed.pat) {
-            localStorage.setItem(PAT_KEY, parsed.pat);
+          const pat = await extractPatFromContent(data.content);
+          if (pat) {
+            localStorage.setItem(PAT_KEY, pat);
             localStorage.setItem(AUTH_KEY, '1');
             if (!cancelled) setAuthed(true);
           }
@@ -142,7 +169,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [status, setStatus] = useState<PublishStatus>({ kind: 'idle' });
   const [previewing, setPreviewing] = useState<boolean>(() => !!localStorage.getItem(PREVIEW_KEY));
 
-  // 首次从远端 admin-config.json 读取 PAT
+  // 首次从远端 admin-config.json 读取 PAT（支持加密格式）
   useEffect(() => {
     (async () => {
       try {
@@ -153,27 +180,19 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         if (r.ok) {
           const data = await r.json();
           setConfigSha(data.sha);
-          const binary = atob(data.content.replace(/\n/g, ''));
-          const bytes = new Uint8Array(binary.length);
-          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-          const parsed = JSON.parse(new TextDecoder().decode(bytes));
-          if (parsed.pat) {
-            setPat(parsed.pat);
-            localStorage.setItem(PAT_KEY, parsed.pat);
+          const found = await extractPatFromContent(data.content);
+          if (found) {
+            setPat(found);
+            localStorage.setItem(PAT_KEY, found);
           }
         }
       } catch {
         // 退回本地 JSON
-        try {
-          const r = await fetch(`${import.meta.env.BASE_URL}admin-config.json`, { cache: 'no-cache' });
-          if (r.ok) {
-            const parsed = await r.json();
-            if (parsed.pat) {
-              setPat(parsed.pat);
-              localStorage.setItem(PAT_KEY, parsed.pat);
-            }
-          }
-        } catch { /* ignore */ }
+        const found = await extractPatFromLocal(`${import.meta.env.BASE_URL}admin-config.json`);
+        if (found) {
+          setPat(found);
+          localStorage.setItem(PAT_KEY, found);
+        } else { /* ignore */ }
       }
     })();
   }, []);
@@ -340,12 +359,13 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     return btoa(binary);
   };
 
-  // 保存 PAT：写 localStorage + 同步写回 GitHub admin-config.json
+  // 保存 PAT：写 localStorage + 加密后写回 GitHub admin-config.json
   const savePat = async () => {
     localStorage.setItem(PAT_KEY, pat);
     if (!pat) return;
     try {
-      const content = toBase64(JSON.stringify({ pat }, null, 2) + '\n');
+      const pat_enc = await encrypt(pat, ADMIN_PASSWORD);
+      const content = toBase64(JSON.stringify({ pat_enc }, null, 2) + '\n');
       const result = await putWithRetry(CONFIG_PATH, pat, content, 'chore(ggl): update admin config', configSha);
       if (result.ok) setConfigSha(result.sha);
     } catch { /* localStorage 已保存，远端失败不阻塞 */ }
