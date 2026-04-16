@@ -1,6 +1,7 @@
 {
   "rows": 2,
   "cols": 5,
+  "wheelSpins": 3,
   "items": [
     {
       "id": 1,

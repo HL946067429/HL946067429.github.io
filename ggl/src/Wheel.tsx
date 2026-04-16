@@ -27,6 +27,10 @@ const pickToast = (toasts: ToastsConfig, type: string) => {
   return pool[Math.floor(Math.random() * pool.length)];
 };
 
+const SPINS_KEY = 'ggl:wheel-spins-used';
+const WON_KEY = 'ggl:wheel-won-indices';
+const DEFAULT_SPINS = 3;
+
 const SLICE_PAIRS = [
   ['#c41e3a', '#a0162a'],
   ['#003366', '#001d3d'],
@@ -42,7 +46,14 @@ export default function Wheel() {
 
   const [spinning, setSpinning] = useState(false);
   const [currentAngle, setCurrentAngle] = useState(0);
-  const [wonIndices, setWonIndices] = useState<Set<number>>(new Set());
+  const [wonIndices, setWonIndices] = useState<Set<number>>(() => {
+    try { const s = localStorage.getItem(WON_KEY); return s ? new Set(JSON.parse(s)) : new Set(); }
+    catch { return new Set(); }
+  });
+  const [spinsUsed, setSpinsUsed] = useState<number>(() => {
+    try { return parseInt(localStorage.getItem(SPINS_KEY) || '0', 10) || 0; }
+    catch { return 0; }
+  });
   const [showModal, setShowModal] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [wonItem, setWonItem] = useState<{ item: RawItem; index: number } | null>(null);
@@ -66,6 +77,18 @@ export default function Wheel() {
   const items = config?.items ?? [];
   const n = items.length;
   const sliceAngle = n > 0 ? 360 / n : 0;
+  const maxSpins = config?.wheelSpins ?? DEFAULT_SPINS;
+  const remainingSpins = Math.max(0, maxSpins - spinsUsed);
+  const hasWonReal = items.some((item, i) => wonIndices.has(i) && item.type === 'real');
+  const spinsExhausted = remainingSpins <= 0;
+
+  // 持久化到 localStorage
+  useEffect(() => {
+    localStorage.setItem(SPINS_KEY, String(spinsUsed));
+  }, [spinsUsed]);
+  useEffect(() => {
+    localStorage.setItem(WON_KEY, JSON.stringify([...wonIndices]));
+  }, [wonIndices]);
 
   /* -------- Canvas 绘制 -------- */
   const drawWheel = useCallback(() => {
@@ -210,14 +233,20 @@ export default function Wheel() {
 
   /* -------- 抽奖逻辑 -------- */
   const spin = () => {
-    if (spinning || n === 0) return;
+    if (spinning || n === 0 || spinsExhausted) return;
     const available = items.map((_, i) => i).filter(i => !wonIndices.has(i));
     if (available.length === 0) { setAllDone(true); return; }
 
     setSpinning(true);
     setShowModal(false);
 
-    const targetIdx = available[Math.floor(Math.random() * available.length)];
+    // 保底：最后一次机会 + 还没中过实物 → 强制从实物里选
+    let pool = available;
+    if (remainingSpins === 1 && !hasWonReal) {
+      const realPool = available.filter(i => items[i].type === 'real');
+      if (realPool.length > 0) pool = realPool;
+    }
+    const targetIdx = pool[Math.floor(Math.random() * pool.length)];
     const targetSliceCenter = targetIdx * sliceAngle + sliceAngle / 2;
     const baseAngle = 360 - targetSliceCenter;
     const extraSpins = (4 + Math.floor(Math.random() * 3)) * 360;
@@ -250,6 +279,7 @@ export default function Wheel() {
       setWonItem({ item: won, index: targetIdx });
       setWonQuip(pickToast(config?.toasts ?? FALLBACK_TOASTS, won.type));
       setWonIndices(prev => new Set(prev).add(targetIdx));
+      setSpinsUsed(prev => prev + 1);
       setShowModal(true);
       setSpinning(false);
 
@@ -273,7 +303,7 @@ export default function Wheel() {
       fire(200, { particleCount: 50, angle: 60, spread: 50, origin: { x: 0, y: 0.6 }, colors: ['#c41e3a', '#d4af37'] });
       fire(400, { particleCount: 50, angle: 120, spread: 50, origin: { x: 1, y: 0.6 }, colors: ['#c41e3a', '#d4af37'] });
 
-      if (wonIndices.size + 1 >= n) {
+      if (wonIndices.size + 1 >= n || spinsUsed + 1 >= maxSpins) {
         setTimeout(() => { setAllDone(true); playAllDone(); vibrateBigWin(); }, 1500);
       }
     }, 4500);
@@ -281,12 +311,15 @@ export default function Wheel() {
 
   const resetAll = () => {
     setWonIndices(new Set());
+    setSpinsUsed(0);
     setCurrentAngle(0);
     setShowModal(false);
     setWonItem(null);
     setWonQuip('');
     setAllDone(false);
     setFillerStreak(0);
+    localStorage.removeItem(SPINS_KEY);
+    localStorage.removeItem(WON_KEY);
   };
 
   // 作弊按钮
@@ -363,10 +396,12 @@ export default function Wheel() {
         </div>
         <div className="mt-3 flex items-center justify-center gap-2">
           <div className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-sm px-4 py-1.5 rounded-full border border-[#d4af37]/30 shadow-sm">
-            <span className="text-gray-500 text-xs font-bold">已揭晓</span>
+            <span className="text-gray-500 text-xs font-bold">剩余</span>
+            <span className={`font-black text-sm ${remainingSpins <= 1 ? 'text-[#c41e3a]' : 'text-[#003366]'}`}>{remainingSpins}</span>
+            <span className="text-gray-400 text-xs">次</span>
+            <span className="text-gray-300 mx-0.5">|</span>
+            <span className="text-gray-500 text-xs font-bold">已得</span>
             <span className="font-black text-[#c41e3a] text-sm">{wonIndices.size}</span>
-            <span className="text-gray-400 text-xs">/</span>
-            <span className="font-black text-gray-700 text-sm">{n}</span>
           </div>
           <button
             onClick={() => setShowRules(true)}
@@ -458,10 +493,10 @@ export default function Wheel() {
           {/* 中心按钮 */}
           <button
             onClick={spin}
-            disabled={spinning || allDone}
+            disabled={spinning || allDone || spinsExhausted}
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-[72px] h-[72px] rounded-full flex items-center justify-center transition-all disabled:cursor-not-allowed"
             style={{
-              background: spinning || allDone
+              background: spinning || allDone || spinsExhausted
                 ? 'linear-gradient(135deg, #999, #777)'
                 : 'linear-gradient(135deg, #c41e3a 0%, #a0162a 50%, #8b0f24 100%)',
               border: `3.5px solid ${GOLD}`,
@@ -472,7 +507,7 @@ export default function Wheel() {
           >
             {spinning ? (
               <RotateCw className="w-7 h-7 text-[#d4af37] animate-spin" />
-            ) : allDone ? (
+            ) : allDone || spinsExhausted ? (
               <Trophy className="w-7 h-7 text-[#d4af37]" />
             ) : (
               <div className="flex flex-col items-center leading-none">
@@ -699,9 +734,9 @@ export default function Wheel() {
                   }}
                 >
                   <span className="flex items-center justify-center gap-2">
-                    {wonIndices.size >= n
-                      ? <><Trophy className="w-4 h-4" /> 全部揭晓！</>
-                      : <><ChevronRight className="w-4 h-4" /> 继续抽奖</>
+                    {wonIndices.size >= n || spinsUsed >= maxSpins
+                      ? <><Trophy className="w-4 h-4" /> 抽奖结束！</>
+                      : <><ChevronRight className="w-4 h-4" /> 继续抽奖（剩 {maxSpins - spinsUsed} 次）</>
                     }
                   </span>
                 </button>
@@ -713,7 +748,7 @@ export default function Wheel() {
 
       {/* 全部完成 */}
       <AnimatePresence>
-        {allDone && !showModal && (
+        {(allDone || spinsExhausted) && !showModal && !spinning && (
           <motion.div
             initial={{ y: 30, opacity: 0, scale: 0.9 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
@@ -728,8 +763,12 @@ export default function Wheel() {
                   <Trophy className="w-5 h-5 text-[#c41e3a]" />
                 </div>
                 <div className="flex-1">
-                  <p className="gold-text font-black text-sm tracking-wider leading-tight">所有奖品已揭晓！</p>
-                  <p className="text-[#d4af37]/70 text-[10px] font-bold mt-0.5 tracking-widest">HAPPY ANNIVERSARY · ALL REVEALED</p>
+                  <p className="gold-text font-black text-sm tracking-wider leading-tight">
+                    {wonIndices.size >= n ? '所有奖品已揭晓！' : `${maxSpins} 次机会已用完！`}
+                  </p>
+                  <p className="text-[#d4af37]/70 text-[10px] font-bold mt-0.5 tracking-widest">
+                    {wonIndices.size >= n ? 'ALL REVEALED' : `已获得 ${wonIndices.size} 个奖品`}
+                  </p>
                 </div>
                 <Sparkles className="w-5 h-5 text-[#d4af37] animate-pulse" />
               </div>

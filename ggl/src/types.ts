@@ -47,4 +47,5 @@ export interface ItemsConfig {
   cols: number;
   items: RawItem[];
   toasts?: ToastsConfig;
+  wheelSpins?: number;  // 转盘可用次数，默认 3
 }

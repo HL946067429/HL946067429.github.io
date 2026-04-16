@@ -497,6 +497,24 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           </div>
         </section>
 
+        {/* 转盘抽奖次数 */}
+        <section className="bg-white rounded-2xl p-5 shadow-md border border-gray-100 mb-5">
+          <h2 className="text-sm font-black mb-3">转盘抽奖次数</h2>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 text-xs">
+              可用次数
+              <input
+                type="number"
+                min={1} max={99}
+                value={config.wheelSpins ?? 3}
+                onChange={(e) => setConfig({ ...config, wheelSpins: Math.max(1, Math.min(99, Number(e.target.value) || 1)) })}
+                className="w-16 px-2 py-1 rounded-lg border-2 border-gray-200 focus:border-[#d4af37] outline-none text-center font-mono"
+              />
+            </label>
+            <span className="text-[11px] text-gray-500">发布后玩家刷新页面生效。最后一次保底中实物奖品。</span>
+          </div>
+        </section>
+
         {/* Items 列表 */}
         <section className="bg-white rounded-2xl p-5 shadow-md border border-gray-100 mb-5">
           <div className="flex items-center justify-between mb-3">
