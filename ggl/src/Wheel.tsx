@@ -85,13 +85,40 @@ export default function Wheel() {
   const hasWonReal = items.some((item, i) => wonIndices.has(i) && item.type === 'real');
   const spinsExhausted = remainingSpins <= 0;
 
-  // 摇一摇触发转盘
+  // 摇一摇：用 ref 追踪最新状态，避免闭包过时
+  const spinRef = useRef(spin);
+  spinRef.current = spin;
+  const canShakeRef = useRef(false);
+  canShakeRef.current = !spinning && !spinsExhausted && !allDone && !envelope && !showModal && !showRules;
+  const [shakeEnabled, setShakeEnabled] = useState(false);
+
+  // iOS 需要用户手势触发权限请求
+  const requestShake = useCallback(async () => {
+    try {
+      const DME = DeviceMotionEvent as any;
+      if (typeof DME.requestPermission === 'function') {
+        const perm = await DME.requestPermission();
+        if (perm === 'granted') setShakeEnabled(true);
+      } else {
+        // Android / 桌面：直接可用
+        setShakeEnabled(true);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  // 首次点击 GO 时顺带请求摇一摇权限
+  const spinWithShake = useCallback(() => {
+    if (!shakeEnabled) requestShake();
+    spin();
+  }, [spin, shakeEnabled, requestShake]);
+
+  // 注册 devicemotion 监听
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (!shakeEnabled || typeof window === 'undefined') return;
     let lastShake = 0;
     let lastX = 0, lastY = 0, lastZ = 0;
-    const threshold = 25; // 加速度阈值
-    const cooldown = 2000; // 摇后冷却
+    const threshold = 25;
+    const cooldown = 2000;
 
     const handler = (e: DeviceMotionEvent) => {
       const acc = e.accelerationIncludingGravity;
@@ -101,16 +128,13 @@ export default function Wheel() {
       lastX = x!; lastY = y!; lastZ = z!;
       if (delta > threshold && Date.now() - lastShake > cooldown) {
         lastShake = Date.now();
-        // 触发 spin（如果可以转的话）
-        if (!spinning && !spinsExhausted && !allDone && !envelope && !showModal && !showRules) {
-          spin();
-        }
+        if (canShakeRef.current) spinRef.current();
       }
     };
 
     window.addEventListener('devicemotion', handler);
     return () => window.removeEventListener('devicemotion', handler);
-  }, [spinning, spinsExhausted, allDone, envelope, showModal, showRules]);
+  }, [shakeEnabled]);
 
   // 持久化到 localStorage
   useEffect(() => {
@@ -540,7 +564,7 @@ export default function Wheel() {
 
           {/* 中心按钮 */}
           <button
-            onClick={spin}
+            onClick={spinWithShake}
             disabled={spinning || allDone || spinsExhausted}
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-[72px] h-[72px] rounded-full flex items-center justify-center transition-all disabled:cursor-not-allowed"
             style={{
