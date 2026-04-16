@@ -4,11 +4,16 @@ import { DEFAULT_CONFIG } from './defaults';
 
 export const PREVIEW_KEY = 'ggl:preview-config';
 
+// 直接从 GitHub 仓库读取，commit 后几秒内生效，不用等 CI 部署
+const RAW_URL =
+  'https://raw.githubusercontent.com/HL946067429/HL946067429.github.io/main/ggl/public/items.json';
+
 /**
  * 加载奖品配置：
  * 1. 先看 localStorage 是否有 preview（后台本地预览用）
- * 2. 否则从 /ggl/items.json 拉取线上配置
- * 3. fetch 失败则回退到内置默认
+ * 2. 从 GitHub raw 直接拉最新配置（秒级生效）
+ * 3. raw 失败则退回本地部署的静态文件
+ * 4. 都失败则回退到内置默认
  */
 export function useItems() {
   const [config, setConfig] = useState<ItemsConfig | null>(null);
@@ -29,18 +34,28 @@ export function useItems() {
       // ignore
     }
 
-    // 再从 JSON 取
-    const url = `${import.meta.env.BASE_URL}items.json`;
-    fetch(url, { cache: 'no-cache' })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+    // 从 GitHub raw 拉取（加时间戳破缓存）
+    const rawUrl = `${RAW_URL}?t=${Date.now()}`;
+    fetch(rawUrl)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`raw ${r.status}`))))
       .then((data: ItemsConfig) => {
         if (!data.items?.length) throw new Error('invalid items.json');
         setConfig(data);
       })
-      .catch((e) => {
-        console.warn('[ggl] failed to load items.json, fallback to default', e);
-        setError(String(e));
-        setConfig(DEFAULT_CONFIG);
+      .catch(() => {
+        // raw 失败，退回本地静态文件
+        const localUrl = `${import.meta.env.BASE_URL}items.json`;
+        fetch(localUrl, { cache: 'no-cache' })
+          .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`local ${r.status}`))))
+          .then((data: ItemsConfig) => {
+            if (!data.items?.length) throw new Error('invalid items.json');
+            setConfig(data);
+          })
+          .catch((e) => {
+            console.warn('[ggl] all sources failed, fallback to default', e);
+            setError(String(e));
+            setConfig(DEFAULT_CONFIG);
+          });
       });
   }, []);
 
