@@ -85,56 +85,10 @@ export default function Wheel() {
   const hasWonReal = items.some((item, i) => wonIndices.has(i) && item.type === 'real');
   const spinsExhausted = remainingSpins <= 0;
 
-  // 摇一摇：用 ref 追踪最新状态，避免闭包过时
-  const spinRef = useRef(spin);
-  spinRef.current = spin;
+  // 摇一摇：用 ref 追踪最新状态，避免闭包过时（先声明，spin 定义后赋值）
+  const spinRef = useRef<() => void>(() => {});
   const canShakeRef = useRef(false);
-  canShakeRef.current = !spinning && !spinsExhausted && !allDone && !envelope && !showModal && !showRules;
   const [shakeEnabled, setShakeEnabled] = useState(false);
-
-  // iOS 需要用户手势触发权限请求
-  const requestShake = useCallback(async () => {
-    try {
-      const DME = DeviceMotionEvent as any;
-      if (typeof DME.requestPermission === 'function') {
-        const perm = await DME.requestPermission();
-        if (perm === 'granted') setShakeEnabled(true);
-      } else {
-        // Android / 桌面：直接可用
-        setShakeEnabled(true);
-      }
-    } catch { /* ignore */ }
-  }, []);
-
-  // 首次点击 GO 时顺带请求摇一摇权限
-  const spinWithShake = useCallback(() => {
-    if (!shakeEnabled) requestShake();
-    spin();
-  }, [spin, shakeEnabled, requestShake]);
-
-  // 注册 devicemotion 监听
-  useEffect(() => {
-    if (!shakeEnabled || typeof window === 'undefined') return;
-    let lastShake = 0;
-    let lastX = 0, lastY = 0, lastZ = 0;
-    const threshold = 25;
-    const cooldown = 2000;
-
-    const handler = (e: DeviceMotionEvent) => {
-      const acc = e.accelerationIncludingGravity;
-      if (!acc) return;
-      const { x = 0, y = 0, z = 0 } = acc;
-      const delta = Math.abs(x - lastX) + Math.abs(y - lastY) + Math.abs(z - lastZ);
-      lastX = x!; lastY = y!; lastZ = z!;
-      if (delta > threshold && Date.now() - lastShake > cooldown) {
-        lastShake = Date.now();
-        if (canShakeRef.current) spinRef.current();
-      }
-    };
-
-    window.addEventListener('devicemotion', handler);
-    return () => window.removeEventListener('devicemotion', handler);
-  }, [shakeEnabled]);
 
   // 持久化到 localStorage
   useEffect(() => {
@@ -342,6 +296,51 @@ export default function Wheel() {
       vibrate(80);
     }, 4500);
   };
+
+  // 摇一摇 ref 赋值（必须在 spin 定义之后）
+  spinRef.current = spin;
+  canShakeRef.current = !spinning && !spinsExhausted && !allDone && !envelope && !showModal && !showRules;
+
+  // iOS 需要用户手势触发权限请求
+  const requestShake = useCallback(async () => {
+    try {
+      const DME = DeviceMotionEvent as any;
+      if (typeof DME.requestPermission === 'function') {
+        const perm = await DME.requestPermission();
+        if (perm === 'granted') setShakeEnabled(true);
+      } else {
+        setShakeEnabled(true);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  // 首次点击 GO 时顺带请求摇一摇权限
+  const spinWithShake = useCallback(() => {
+    if (!shakeEnabled) requestShake();
+    spin();
+  }, [spin, shakeEnabled, requestShake]);
+
+  // 注册 devicemotion 监听
+  useEffect(() => {
+    if (!shakeEnabled || typeof window === 'undefined') return;
+    let lastShake = 0;
+    let lastX = 0, lastY = 0, lastZ = 0;
+    const threshold = 25;
+    const cooldown = 2000;
+    const handler = (e: DeviceMotionEvent) => {
+      const acc = e.accelerationIncludingGravity;
+      if (!acc) return;
+      const { x = 0, y = 0, z = 0 } = acc;
+      const delta = Math.abs(x - lastX) + Math.abs(y - lastY) + Math.abs(z - lastZ);
+      lastX = x!; lastY = y!; lastZ = z!;
+      if (delta > threshold && Date.now() - lastShake > cooldown) {
+        lastShake = Date.now();
+        if (canShakeRef.current) spinRef.current();
+      }
+    };
+    window.addEventListener('devicemotion', handler);
+    return () => window.removeEventListener('devicemotion', handler);
+  }, [shakeEnabled]);
 
   const resetAll = () => {
     setWonIndices(new Set());
