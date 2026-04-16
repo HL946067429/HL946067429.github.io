@@ -4,7 +4,7 @@
   "items": [
     {
       "id": 1,
-      "title": "三套定制键帽",
+      "title": "键帽",
       "tier": "特等奖",
       "icon": "Keyboard",
       "iconColor": "text-blue-600",
@@ -13,7 +13,7 @@
     },
     {
       "id": 3,
-      "title": "一束浪漫鲜花",
+      "title": "花花儿",
       "tier": "一等奖",
       "icon": "Flower",
       "iconColor": "text-pink-600",
@@ -22,7 +22,7 @@
     },
     {
       "id": 5,
-      "title": "一份真刮刮乐",
+      "title": "一夜暴富的机会",
       "tier": "二等奖",
       "icon": "Trophy",
       "iconColor": "text-yellow-600",
