@@ -10,6 +10,8 @@ import { mediumZoomPlugin } from '@vuepress/plugin-medium-zoom'
 export default defineUserConfig({
   title: "全系列技术体系",
   description: "Just playing around",
+  // 排除子项目目录，避免 VuePress 扫描它们的 node_modules
+  pagePatterns: ['**/*.md', '!ggl/**', '!travel-memories/**', '!wanderlog/**', '!node_modules/**'],
   bundler: viteBundler(),
   // bundler: webpackBundler(),
   theme: recoTheme({
