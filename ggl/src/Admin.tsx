@@ -609,17 +609,15 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                       placeholder="奖品名（如：三套定制键帽）"
                       className="col-span-2 px-2 py-1.5 rounded-lg border border-gray-200 focus:border-[#d4af37] outline-none text-xs font-medium"
                     />
-                    <input
-                      type="text"
-                      list={`tier-suggestions-${idx}`}
+                    <select
                       value={item.tier || ''}
                       onChange={(e) => updateItem(idx, { tier: e.target.value })}
-                      placeholder="奖级"
                       className="col-span-1 px-2 py-1.5 rounded-lg border border-gray-200 focus:border-[#d4af37] outline-none text-xs font-bold"
-                    />
-                    <datalist id={`tier-suggestions-${idx}`}>
-                      {(config.tiers ?? TIER_ORDER).map(t => <option key={t} value={t} />)}
-                    </datalist>
+                    >
+                      {(config.tiers ?? TIER_ORDER).map(t => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
                     <select
                       value={item.type}
                       onChange={(e) => updateItem(idx, { type: e.target.value as ItemType })}
