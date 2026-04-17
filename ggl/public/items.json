@@ -1,34 +1,51 @@
 {
-  "rows": 2,
+  "rows": 3,
   "cols": 5,
   "wheelSpins": 7,
-  "tiers": ["特等奖", "一等奖", "二等奖", "三等奖", "幸运奖", "安慰奖", "谢谢参与"],
+  "tiers": [
+    "特等奖",
+    "一等奖",
+    "二等奖",
+    "三等奖",
+    "幸运奖",
+    "安慰奖",
+    "谢谢参与"
+  ],
   "items": [
+    {
+      "id": 5,
+      "title": "暴富的机会",
+      "tier": "特等奖",
+      "icon": "Trophy",
+      "iconColor": "text-yellow-600",
+      "value": "¥100",
+      "type": "real"
+    },
     {
       "id": 1,
       "title": "键帽",
-      "tier": "特等奖",
+      "tier": "一等奖",
       "icon": "Keyboard",
       "iconColor": "text-blue-600",
       "value": "¥888",
       "type": "real"
     },
     {
-      "id": 3,
-      "title": "花花儿",
-      "tier": "一等奖",
-      "icon": "Flower",
-      "iconColor": "text-pink-600",
-      "value": "¥520",
+      "id": 21,
+      "title": "发带",
+      "tier": "三等奖",
+      "icon": "Gift",
+      "iconColor": "text-pink-500",
+      "value": "¥0",
       "type": "real"
     },
     {
-      "id": 5,
-      "title": "一夜暴富的机会",
-      "tier": "二等奖",
-      "icon": "Trophy",
-      "iconColor": "text-yellow-600",
-      "value": "¥100",
+      "id": 3,
+      "title": "花花儿",
+      "tier": "幸运奖",
+      "icon": "Flower",
+      "iconColor": "text-pink-600",
+      "value": "¥520",
       "type": "real"
     },
     {
@@ -62,7 +79,7 @@
       "id": 12,
       "title": "电影票两张",
       "tier": "三等奖",
-      "icon": "Ticket",
+      "icon": "Moon",
       "iconColor": "text-red-600",
       "value": "¥120",
       "type": "real"
