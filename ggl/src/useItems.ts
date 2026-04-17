@@ -85,7 +85,9 @@ export function useItems() {
     // 轮询更新（仅更新配置，不重置游戏状态）
     const timer = setInterval(async () => {
       if (cancelled) return;
-      const data = await fetchConfig(`${RAW_URL}?t=${Date.now()}`, 3000);
+      // raw 失败（被墙）时退回本地静态文件（CI 部署后生效）
+      let data = await fetchConfig(`${RAW_URL}?t=${Date.now()}`, 3000);
+      if (!data) data = await fetchConfig(`${import.meta.env.BASE_URL}items.json?t=${Date.now()}`, 5000);
       if (!data || cancelled) return;
       const json = JSON.stringify(data);
       if (json !== configRef.current) {
