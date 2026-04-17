@@ -5,7 +5,7 @@ import {
   ListOrdered,
 } from 'lucide-react';
 import type { ItemsConfig, RawItem, ItemType, ToastsConfig } from './types';
-import { TIER_ORDER } from './types';
+import { TIER_ORDER, getTier } from './types';
 import { encrypt, decrypt } from './crypto';
 import { ICON_MAP, ICON_NAMES, COLOR_OPTIONS } from './icons';
 import { DEFAULT_CONFIG } from './defaults';
@@ -274,7 +274,8 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   // 本机预览（仅你这台浏览器看到）
   const applyPreview = () => {
     if (!config) return;
-    localStorage.setItem(PREVIEW_KEY, JSON.stringify(config));
+    const normalized = { ...config, items: config.items.map(item => ({ ...item, tier: getTier(item) })) };
+    localStorage.setItem(PREVIEW_KEY, JSON.stringify(normalized));
     setPreviewing(true);
   };
   const clearPreview = () => {
@@ -291,7 +292,9 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     }
     setStatus({ kind: 'loading', msg: '正在提交到 GitHub…' });
     try {
-      const content = toBase64(JSON.stringify(config, null, 2) + '\n');
+      // 发布前确保每个 item 都有明确的 tier 字段
+      const normalized = { ...config, items: config.items.map(item => ({ ...item, tier: getTier(item) })) };
+      const content = toBase64(JSON.stringify(normalized, null, 2) + '\n');
       const result = await putWithRetry(DATA_PATH, pat, content, 'chore(ggl): update items via admin panel', remoteSha);
       if (!result.ok) throw new Error(result.error || '发布失败');
       setRemoteSha(result.sha);
@@ -610,7 +613,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                       className="col-span-2 px-2 py-1.5 rounded-lg border border-gray-200 focus:border-[#d4af37] outline-none text-xs font-medium"
                     />
                     <select
-                      value={item.tier || ''}
+                      value={getTier(item)}
                       onChange={(e) => updateItem(idx, { tier: e.target.value })}
                       className="col-span-1 px-2 py-1.5 rounded-lg border border-gray-200 focus:border-[#d4af37] outline-none text-xs font-bold"
                     >
