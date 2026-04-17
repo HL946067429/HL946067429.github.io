@@ -85,6 +85,13 @@ export default function Wheel() {
   const hasWonReal = items.some((item, i) => wonIndices.has(i) && item.type === 'real');
   const spinsExhausted = remainingSpins <= 0;
 
+  // 后台加了次数后自动解除"已结束"状态
+  useEffect(() => {
+    if (!spinsExhausted && allDone && wonIndices.size < n) {
+      setAllDone(false);
+    }
+  }, [spinsExhausted, allDone, wonIndices.size, n]);
+
   // 摇一摇系统
   const spinRef = useRef<() => void>(() => {});
   const canShakeRef = useRef(false);
