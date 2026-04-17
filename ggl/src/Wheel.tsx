@@ -85,10 +85,24 @@ export default function Wheel() {
   const hasWonReal = items.some((item, i) => wonIndices.has(i) && item.type === 'real');
   const spinsExhausted = remainingSpins <= 0;
 
-  // 摇一摇：用 ref 追踪最新状态，避免闭包过时（先声明，spin 定义后赋值）
+  // 摇一摇系统
   const spinRef = useRef<() => void>(() => {});
   const canShakeRef = useRef(false);
   const [shakeEnabled, setShakeEnabled] = useState(false);
+  const [needsShakePermission, setNeedsShakePermission] = useState(false);
+
+  // 页面加载后自动尝试启用摇一摇（Android 直接成功，iOS 需要权限）
+  useEffect(() => {
+    const DME = window.DeviceMotionEvent as any;
+    if (!DME) return; // 不支持
+    if (typeof DME.requestPermission === 'function') {
+      // iOS：需要用户手势，先标记等待
+      setNeedsShakePermission(true);
+    } else {
+      // Android / 其他：直接可用
+      setShakeEnabled(true);
+    }
+  }, []);
 
   // 持久化到 localStorage
   useEffect(() => {
@@ -301,38 +315,39 @@ export default function Wheel() {
   spinRef.current = spin;
   canShakeRef.current = !spinning && !spinsExhausted && !allDone && !envelope && !showModal && !showRules;
 
-  // iOS 需要用户手势触发权限请求
-  const requestShake = useCallback(async () => {
+  // iOS 权限请求（必须由用户手势触发）
+  const requestShakePermission = useCallback(async () => {
     try {
       const DME = DeviceMotionEvent as any;
       if (typeof DME.requestPermission === 'function') {
         const perm = await DME.requestPermission();
-        if (perm === 'granted') setShakeEnabled(true);
-      } else {
-        setShakeEnabled(true);
+        if (perm === 'granted') {
+          setShakeEnabled(true);
+          setNeedsShakePermission(false);
+        }
       }
     } catch { /* ignore */ }
   }, []);
 
-  // 首次点击 GO 时顺带请求摇一摇权限
+  // 点击 GO 时：iOS 顺带请求权限
   const spinWithShake = useCallback(() => {
-    if (!shakeEnabled) requestShake();
+    if (needsShakePermission) requestShakePermission();
     spin();
-  }, [spin, shakeEnabled, requestShake]);
+  }, [spin, needsShakePermission, requestShakePermission]);
 
-  // 注册 devicemotion 监听
+  // 注册 devicemotion 监听（阈值降低到 15，更灵敏）
   useEffect(() => {
     if (!shakeEnabled || typeof window === 'undefined') return;
     let lastShake = 0;
     let lastX = 0, lastY = 0, lastZ = 0;
-    const threshold = 25;
+    const threshold = 15;
     const cooldown = 2000;
     const handler = (e: DeviceMotionEvent) => {
       const acc = e.accelerationIncludingGravity;
       if (!acc) return;
-      const { x = 0, y = 0, z = 0 } = acc;
+      const x = acc.x ?? 0, y = acc.y ?? 0, z = acc.z ?? 0;
       const delta = Math.abs(x - lastX) + Math.abs(y - lastY) + Math.abs(z - lastZ);
-      lastX = x!; lastY = y!; lastZ = z!;
+      lastX = x; lastY = y; lastZ = z;
       if (delta > threshold && Date.now() - lastShake > cooldown) {
         lastShake = Date.now();
         if (canShakeRef.current) spinRef.current();
@@ -583,7 +598,9 @@ export default function Wheel() {
             ) : (
               <div className="flex flex-col items-center leading-none">
                 <span className="text-[22px] font-black text-[#d4af37] drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]">GO</span>
-                <span className="text-[8px] font-bold text-[#d4af37]/60 tracking-widest mt-0.5">📱 摇一摇</span>
+                <span className="text-[8px] font-bold text-[#d4af37]/60 tracking-widest mt-0.5">
+                  {shakeEnabled ? '📱摇一摇' : 'SPIN'}
+                </span>
               </div>
             )}
           </button>
@@ -653,6 +670,15 @@ export default function Wheel() {
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white/90 backdrop-blur-sm text-xs font-bold text-gray-600 shadow-md border border-gray-200/80 hover:border-[#c41e3a] hover:shadow-lg transition-all"
           >
             <RotateCw className="w-3.5 h-3.5" /> 重新开始
+          </button>
+        )}
+        {/* iOS 摇一摇权限按钮 */}
+        {needsShakePermission && (
+          <button
+            onClick={requestShakePermission}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-gradient-to-r from-[#d4af37] to-[#aa771c] text-white text-xs font-bold shadow-md hover:shadow-lg active:scale-95 transition-all animate-pulse"
+          >
+            📱 开启摇一摇
           </button>
         )}
         {/* 半隐藏的作弊按钮 */}
