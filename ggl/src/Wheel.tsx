@@ -1208,7 +1208,7 @@ export default function Wheel() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {groupByTier(items).map(group => {
+                        {groupByTier(items, config.tiers).map(group => {
                           const isFillerGroup = group.tier === '谢谢参与';
                           const isTopTier = group.tier === '特等奖';
                           return (

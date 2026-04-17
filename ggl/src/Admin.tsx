@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Lock, Save, Eye, EyeOff, Upload, Plus, Trash2, ArrowUp, ArrowDown, RotateCcw,
   ExternalLink, Loader2, CheckCircle2, AlertCircle, KeyRound, Gift, Sparkles, MessageSquare,
+  ListOrdered,
 } from 'lucide-react';
 import type { ItemsConfig, RawItem, ItemType, ToastsConfig } from './types';
 import { TIER_ORDER } from './types';
@@ -515,6 +516,65 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           </div>
         </section>
 
+        {/* 奖级管理 */}
+        <section className="bg-white rounded-2xl p-5 shadow-md border border-gray-100 mb-5">
+          <div className="flex items-center gap-2 mb-3">
+            <ListOrdered className="w-4 h-4 text-[#c41e3a]" />
+            <h2 className="text-sm font-black">奖级管理</h2>
+            <span className="text-[10px] text-gray-400">定义奖级名称和排列顺序（靠前等级高）</span>
+          </div>
+          {(() => {
+            const tiers = config.tiers ?? TIER_ORDER;
+            const setTiers = (next: string[]) => setConfig({ ...config, tiers: next });
+            return (
+              <div className="space-y-1.5">
+                {tiers.map((tier, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <span className="text-[10px] text-gray-400 font-mono w-5 shrink-0 text-right">{idx + 1}</span>
+                    <input
+                      type="text"
+                      value={tier}
+                      onChange={(e) => {
+                        const next = [...tiers];
+                        next[idx] = e.target.value;
+                        setTiers(next);
+                      }}
+                      className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 focus:border-[#d4af37] outline-none text-xs font-bold"
+                      placeholder="奖级名称"
+                    />
+                    <button
+                      onClick={() => { if (idx === 0) return; const a = [...tiers]; [a[idx-1], a[idx]] = [a[idx], a[idx-1]]; setTiers(a); }}
+                      disabled={idx === 0}
+                      className="p-1.5 text-gray-400 hover:text-[#003366] disabled:opacity-20"
+                    >
+                      <ArrowUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => { if (idx === tiers.length - 1) return; const a = [...tiers]; [a[idx], a[idx+1]] = [a[idx+1], a[idx]]; setTiers(a); }}
+                      disabled={idx === tiers.length - 1}
+                      className="p-1.5 text-gray-400 hover:text-[#003366] disabled:opacity-20"
+                    >
+                      <ArrowDown className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setTiers(tiers.filter((_, i) => i !== idx))}
+                      className="p-1.5 text-gray-300 hover:text-red-500"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => setTiers([...tiers, '新奖级'])}
+                  className="mt-1 text-[11px] font-bold text-[#c41e3a] hover:underline"
+                >
+                  + 添加奖级
+                </button>
+              </div>
+            );
+          })()}
+        </section>
+
         {/* Items 列表 */}
         <section className="bg-white rounded-2xl p-5 shadow-md border border-gray-100 mb-5">
           <div className="flex items-center justify-between mb-3">
@@ -529,7 +589,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             </div>
           </div>
           <p className="text-[11px] text-gray-500 mb-3 leading-relaxed bg-amber-50 border border-amber-200/60 rounded-lg px-3 py-2">
-            💡 <strong>奖级</strong>是抽奖时显示给玩家的标签（如"特等奖"），<strong>奖品名</strong>是实际奖品（如"三套定制键帽"），会在规则对照表里展示。常用奖级：{TIER_ORDER.join(' / ')}
+            💡 <strong>奖级</strong>是抽奖时显示给玩家的标签（如"特等奖"），<strong>奖品名</strong>是实际奖品（如"三套定制键帽"），会在规则对照表里展示。已配置的奖级：{(config.tiers ?? TIER_ORDER).filter(t => t).join(' / ')}
           </p>
 
           <div className="space-y-2">
@@ -558,7 +618,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                       className="col-span-1 px-2 py-1.5 rounded-lg border border-gray-200 focus:border-[#d4af37] outline-none text-xs font-bold"
                     />
                     <datalist id={`tier-suggestions-${idx}`}>
-                      {TIER_ORDER.map(t => <option key={t} value={t} />)}
+                      {(config.tiers ?? TIER_ORDER).map(t => <option key={t} value={t} />)}
                     </datalist>
                     <select
                       value={item.type}

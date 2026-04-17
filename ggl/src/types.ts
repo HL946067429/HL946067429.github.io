@@ -23,8 +23,13 @@ export const defaultTier = (type: ItemType): string =>
 
 export const getTier = (item: RawItem): string => item.tier || defaultTier(item.type);
 
-/** 将 items 按奖级聚合，并按等级排序 */
-export const groupByTier = (items: RawItem[]): { tier: string; items: RawItem[] }[] => {
+/** 将 items 按奖级聚合，并按等级排序（可传入自定义 tierOrder） */
+export const groupByTier = (items: RawItem[], tierOrder?: string[]): { tier: string; items: RawItem[] }[] => {
+  const order = tierOrder ?? TIER_ORDER;
+  const rank = (tier: string) => {
+    const idx = order.indexOf(tier);
+    return idx === -1 ? 999 : idx;
+  };
   const map = new Map<string, RawItem[]>();
   for (const item of items) {
     const t = getTier(item);
@@ -33,7 +38,7 @@ export const groupByTier = (items: RawItem[]): { tier: string; items: RawItem[] 
   }
   return Array.from(map.entries())
     .map(([tier, items]) => ({ tier, items }))
-    .sort((a, b) => tierRank(a.tier) - tierRank(b.tier));
+    .sort((a, b) => rank(a.tier) - rank(b.tier));
 };
 
 export interface ToastsConfig {
@@ -48,4 +53,5 @@ export interface ItemsConfig {
   items: RawItem[];
   toasts?: ToastsConfig;
   wheelSpins?: number;  // 转盘可用次数，默认 3
+  tiers?: string[];     // 奖级名称列表（按优先级排序），可在后台自定义
 }

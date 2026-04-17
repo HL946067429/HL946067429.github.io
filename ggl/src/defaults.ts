@@ -5,6 +5,7 @@ export const DEFAULT_CONFIG: ItemsConfig = {
   rows: 5,
   cols: 4,
   wheelSpins: 3,
+  tiers: ['特等奖', '一等奖', '二等奖', '三等奖', '幸运奖', '安慰奖', '谢谢参与'],
   items: [
     { id: 1, title: '三套定制键帽', tier: '特等奖', icon: 'Keyboard', iconColor: 'text-blue-600', value: '¥888', type: 'real' },
     { id: 2, title: '洗碗券一次', tier: '幸运奖', icon: 'Utensils', iconColor: 'text-green-600', value: '¥10', type: 'funny' },
