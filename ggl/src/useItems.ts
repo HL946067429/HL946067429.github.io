@@ -8,7 +8,7 @@ export const PREVIEW_KEY = 'ggl:preview-config';
 const RAW_URL =
   'https://raw.githubusercontent.com/HL946067429/HL946067429.github.io/main/ggl/public/items.json';
 
-const POLL_INTERVAL = 15_000; // 每 15 秒检查一次配置更新
+const POLL_INTERVAL = 5_000; // 每 5 秒检查一次配置更新
 
 /** 带超时的 fetch */
 function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {

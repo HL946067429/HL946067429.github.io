@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true  # 连续 push 时取消旧构建，只部署最新的
 
 jobs:
   build:
@@ -21,7 +21,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -34,39 +34,26 @@ jobs:
         with:
           version: 9
 
-      # Build VuePress blog
-      - name: Install VuePress Dependencies
-        run: npm install
+      # 并行安装所有依赖
+      - name: Install All Dependencies
+        run: |
+          npm ci &
+          (cd travel-memories && pnpm install) &
+          (cd wanderlog && npm ci) &
+          (cd ggl && npm ci) &
+          wait
 
+      # 构建 VuePress（最慢，先启动）
       - name: Build VuePress Site
         run: npm run build
 
-      # Build Travel Memories app
-      - name: Install Travel Memories Dependencies
-        working-directory: travel-memories
-        run: pnpm install
-
-      - name: Build Travel Memories
-        working-directory: travel-memories
-        run: pnpm build
-
-      # Build WanderLog app
-      - name: Install WanderLog Dependencies
-        working-directory: wanderlog
-        run: npm install
-
-      - name: Build WanderLog
-        working-directory: wanderlog
-        run: npm run build
-
-      # Build GGL (Anniversary Scratch Card) app
-      - name: Install GGL Dependencies
-        working-directory: ggl
-        run: npm install
-
-      - name: Build GGL
-        working-directory: ggl
-        run: npm run build
+      # 并行构建其余三个项目
+      - name: Build Sub-projects in Parallel
+        run: |
+          (cd travel-memories && pnpm build) &
+          (cd wanderlog && npm run build) &
+          (cd ggl && npm run build) &
+          wait
 
       # Merge all outputs
       - name: Merge Build Outputs
@@ -85,16 +72,9 @@ jobs:
           rm -rf .vuepress/dist/ggl
           cp -r ggl/dist .vuepress/dist/ggl
           cp .vuepress/dist/ggl/index.html .vuepress/dist/ggl/404.html
-          # SPA sub-routes need their own index.html
           mkdir -p .vuepress/dist/ggl/admin .vuepress/dist/ggl/wheel
           cp .vuepress/dist/ggl/index.html .vuepress/dist/ggl/admin/index.html
           cp .vuepress/dist/ggl/index.html .vuepress/dist/ggl/wheel/index.html
-
-          echo "--- Final output structure ---"
-          ls -la .vuepress/dist/
-          ls -la .vuepress/dist/travel-memories/
-          ls -la .vuepress/dist/wanderlog/
-          ls -la .vuepress/dist/ggl/
 
       - name: Upload Artifact
         if: success()
