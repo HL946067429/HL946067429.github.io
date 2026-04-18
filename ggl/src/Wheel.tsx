@@ -92,6 +92,15 @@ export default function Wheel() {
     }
   }, [spinsExhausted, allDone, wonIndices.size, n]);
 
+  // config 重载后清理越界的 wonIndices（items 数量减少时）
+  useEffect(() => {
+    if (n === 0) return;
+    const stale = [...wonIndices].filter(i => i >= n);
+    if (stale.length > 0) {
+      setWonIndices(prev => { const s = new Set(prev); stale.forEach(i => s.delete(i)); return s; });
+    }
+  }, [n]);
+
   // 摇一摇系统
   const spinRef = useRef<() => void>(() => {});
   const canShakeRef = useRef(false);
@@ -198,7 +207,7 @@ export default function Wheel() {
         ctx.font = `bold ${Math.min(13, Math.max(9, 200 / n))}px "Noto Serif SC", "Inter", sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        const tier = getTier(items[i]);
+        const tier = items[i] ? getTier(items[i]) : '?';
         const label = tier.length > 5 ? tier.slice(0, 5) + '…' : tier;
         ctx.fillText(label, R * 0.56, 0);
         ctx.fillStyle = '#bbb';
@@ -631,6 +640,7 @@ export default function Wheel() {
               <div className="flex flex-wrap gap-2">
                 {[...wonIndices].sort((a, b) => a - b).map(idx => {
                   const item = items[idx];
+                  if (!item) return null;
                   const IconComp = ICON_MAP[item.icon] ?? Star;
                   return (
                     <motion.div
