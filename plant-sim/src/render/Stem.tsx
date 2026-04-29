@@ -39,15 +39,17 @@ export default function Stem({
     const tipDz = windOffset[1];
     const tipDy = Math.cos(bendAngle) * height;
 
-    // 自然 S 形:在中段把控制点往随机方向轻微偏移(对齐文档"曲线生长"原则)
-    // 偏移幅度 ~ 1-1.5% 株高,做个轻微"歪扭",避免完全笔直的塑料感
-    const sway = height * 0.012;
+    // 自然 S 形:在中段把控制点往随机方向偏移(对齐文档"曲线生长"原则)
+    // 真实向日葵在生长过程中,茎并非笔直,而是有自然弯曲。
+    // 这里幅度提到 3% 株高 + 上下两段反向(更明显的 S 形)。
+    const sway = height * 0.03;
     const p0 = new THREE.Vector3(0, 0, 0);
-    const p1 = new THREE.Vector3(sway * 0.6, height * 0.38, -sway * 0.4);
+    // P1 偏 +X、-Z;P2 反向偏 -X、+Z → 形成 S 形拐
+    const p1 = new THREE.Vector3(sway * 1.2, height * 0.35, -sway * 0.6);
     const p2 = new THREE.Vector3(
-      tipDx * 0.3 - sway * 0.8,
-      height * 0.72,
-      tipDz * 0.3 + sway * 0.5,
+      tipDx * 0.3 - sway * 1.4,
+      height * 0.7,
+      tipDz * 0.3 + sway * 0.9,
     );
     const p3 = new THREE.Vector3(tipDx, tipDy, tipDz);
     const curve = new THREE.CubicBezierCurve3(p0, p1, p2, p3);

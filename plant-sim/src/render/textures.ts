@@ -235,6 +235,60 @@ export function getPetalDetailTexture(): THREE.Texture {
 }
 
 /* ============================================================
+ * 花盘 bumpMap:Vogel 螺旋种子的高度场,白 = 凸起,黑 = 凹陷
+ * 用作 MeshStandardMaterial.bumpMap,让花盘在光照下有真实的 3D 颗粒感
+ * ============================================================ */
+export function getDiscBumpTexture(): THREE.Texture {
+  const key = "disc-bump-v1";
+  const cached = _cache.get(key);
+  if (cached) return cached;
+
+  const SIZE = 512;
+  const c = getCanvas(SIZE, SIZE);
+  const ctx = c.getContext("2d")!;
+  const cx = SIZE / 2;
+  const cy = SIZE / 2;
+  const R = SIZE / 2 - 2;
+
+  // 背景:中性灰(无凸起)
+  ctx.fillStyle = "#808080";
+  ctx.fillRect(0, 0, SIZE, SIZE);
+
+  // 每颗种子用径向渐变:中心白 → 边缘灰
+  const GOLDEN = 137.508 * (Math.PI / 180);
+  const N = 480;
+  const maxR = Math.sqrt(N);
+  for (let i = 0; i < N; i++) {
+    const r = (Math.sqrt(i + 0.5) / maxR) * (R - 8);
+    const theta = i * GOLDEN;
+    const x = cx + r * Math.cos(theta);
+    const y = cy + r * Math.sin(theta);
+    const seedR = 4 + (1 - r / R) * 4;
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, seedR);
+    grad.addColorStop(0, "#ffffff");
+    grad.addColorStop(0.6, "#a0a0a0");
+    grad.addColorStop(1, "#606060");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(x, y, seedR, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 圆外缘略略下沉,形成"花盘边缘塌进去"的感觉
+  const margin = ctx.createRadialGradient(cx, cy, R * 0.92, cx, cy, R);
+  margin.addColorStop(0, "rgba(128,128,128,0)");
+  margin.addColorStop(1, "rgba(60,60,60,1)");
+  ctx.fillStyle = margin;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.fill();
+
+  const tex = makeDataTexture(c);
+  _cache.set(key, tex);
+  return tex;
+}
+
+/* ============================================================
  * 花盘"管状花"密堆纹理 — 用于平面 disc geometry 替代上千个小球
  * 输出:深褐色背景 + Vogel 螺旋上的暗色种子点
  * ============================================================ */

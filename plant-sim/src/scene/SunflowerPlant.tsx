@@ -87,13 +87,17 @@ function deriveVisualState(spec: SpeciesSpec, gdd: number) {
     }
     // 单叶生长:0.25 进度内长到最大
     const grow = clamp01((ageT + 0.05) / 0.25);
-    let length = m.leafMaxLength * grow * sizeJitter;
+    // 位置梯度:下部叶最大、上部叶最小(真实向日葵的形态分布)
+    // birthT 0(最早出生,在底部)→ 1(最晚,在顶部)
+    const positionSizeFactor = 1.35 - 0.7 * birthT;
+    let length = m.leafMaxLength * grow * sizeJitter * positionSizeFactor;
     // 单叶颜色:幼→成熟,然后随植株衰老→黄→棕
     let color = lerpColor(spec.leaf.colorYoung, spec.leaf.colorMature, clamp01(grow * 1.3));
     // 每片叶轻微 hue/lightness 抖动
     color = jitterColor(color, hash01(i + 5));
     let attached = true;
-    let curl = 0;
+    // 基线卷曲:每片叶子有自己天生的小卷曲(不全部完全平整)
+    let curl = (hash01(i + 6) - 0.5) * 0.28;
 
     if (senesStage && gdd >= senesStage.gddStart) {
       const sT = clamp01(
@@ -102,7 +106,7 @@ function deriveVisualState(spec: SpeciesSpec, gdd: number) {
       // 越下面的叶子越早衰老:阈值依赖 i
       const senesceLocal = clamp01(sT * 1.6 - birthT * 0.4);
       color = lerpColor(rgbToHex(color), spec.leaf.colorSenescent, senesceLocal);
-      curl = senesceLocal * 0.6;
+      curl += senesceLocal * 0.6;
       // 接近末段开始脱落
       if (sT > 0.5 && hash01(i) < (sT - 0.5) * 1.5) attached = false;
     }

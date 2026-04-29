@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { buildPetal } from "./leafGeometry";
-import { getDiscTexture, getPetalDetailTexture } from "./textures";
+import { getDiscBumpTexture, getDiscTexture, getPetalDetailTexture } from "./textures";
 
 export interface FlowerHeadProps {
   /** 花盘半径(米) */
@@ -60,14 +60,17 @@ export default function FlowerHead({
       }),
     [discColor, discCenterColor],
   );
+  const discBumpTexture = useMemo(() => getDiscBumpTexture(), []);
   const discMat = useMemo(() => {
     return new THREE.MeshStandardMaterial({
       map: discTexture,
+      bumpMap: discBumpTexture,
+      bumpScale: 0.04,
       roughness: 0.78,
       metalness: 0,
       side: THREE.FrontSide,
     });
-  }, [discTexture]);
+  }, [discTexture, discBumpTexture]);
 
   // 成熟度调色:整盘随 ripeness 暗化(从开花期亮黄→灌浆深棕)
   useEffect(() => {
