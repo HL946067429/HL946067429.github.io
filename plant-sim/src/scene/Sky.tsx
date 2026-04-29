@@ -13,8 +13,11 @@ export default function Sky() {
     const loc = useEnv.getState().location;
     const s = computeSolar(new Date(now), loc.lat, loc.lon);
     if (ref.current?.material?.uniforms?.sunPosition) {
+      // 把 Sky 的"假太阳"高度限制在地平线略下,夜间维持深蓝暮色而不是死黑;
+      // 真正的天体仰角(用于光照/向日性)仍走 computeSolar,不受此影响。
       const [x, y, z] = s.direction;
-      ref.current.material.uniforms.sunPosition.value.set(x, y, z);
+      const yClamped = Math.max(y, -0.05);
+      ref.current.material.uniforms.sunPosition.value.set(x, yClamped, z);
     }
   });
 
