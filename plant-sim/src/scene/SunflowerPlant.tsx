@@ -61,8 +61,14 @@ function deriveVisualState(spec: SpeciesSpec, gdd: number) {
   const leafSlots: LeafSlot[] = [];
   // 越靠下的叶子越早出现并越早衰老
   for (let i = 0; i < m.maxLeafCount; i++) {
-    const yFrac = 0.06 + (i + 0.5) * (0.85 / m.maxLeafCount);
-    const azimuth = i * GOLDEN_RAD;
+    // 加入小的位置/角度/大小扰动,避免所有叶子完全克隆
+    const jitterY = (hash01(i + 1) - 0.5) * 0.04;
+    const jitterAz = (hash01(i + 2) - 0.5) * 0.18;
+    const jitterPitch = (hash01(i + 3) - 0.5) * 0.25;
+    const sizeJitter = 0.82 + 0.36 * hash01(i + 4);
+
+    const yFrac = 0.06 + (i + 0.5) * (0.85 / m.maxLeafCount) + jitterY;
+    const azimuth = i * GOLDEN_RAD + jitterAz;
     // 这片叶子"出生"时的茎进度阈值:i 越大越晚
     const birthT = i / m.maxLeafCount;
     const ageT = stemT - birthT;
@@ -72,7 +78,7 @@ function deriveVisualState(spec: SpeciesSpec, gdd: number) {
         yFrac,
         azimuth,
         length: 0,
-        pitch: deg2rad(m.leafPitch),
+        pitch: deg2rad(m.leafPitch) + jitterPitch,
         color: hexToRgb(spec.leaf.colorYoung),
         attached: false,
         curl: 0,
@@ -81,9 +87,11 @@ function deriveVisualState(spec: SpeciesSpec, gdd: number) {
     }
     // 单叶生长:0.25 进度内长到最大
     const grow = clamp01((ageT + 0.05) / 0.25);
-    let length = m.leafMaxLength * grow;
+    let length = m.leafMaxLength * grow * sizeJitter;
     // 单叶颜色:幼→成熟,然后随植株衰老→黄→棕
     let color = lerpColor(spec.leaf.colorYoung, spec.leaf.colorMature, clamp01(grow * 1.3));
+    // 每片叶轻微 hue/lightness 抖动
+    color = jitterColor(color, hash01(i + 5));
     let attached = true;
     let curl = 0;
 
@@ -110,7 +118,7 @@ function deriveVisualState(spec: SpeciesSpec, gdd: number) {
       yFrac,
       azimuth,
       length: i < leafCount ? length : 0,
-      pitch: deg2rad(m.leafPitch),
+      pitch: deg2rad(m.leafPitch) + jitterPitch,
       color,
       attached,
       curl,
@@ -221,6 +229,16 @@ function lerpColor(a: string | [number, number, number], b: string | [number, nu
   const cb = Array.isArray(b) ? new THREE.Color(b[0], b[1], b[2]) : new THREE.Color(b);
   ca.lerp(cb, clamp01(t));
   return [ca.r, ca.g, ca.b];
+}
+
+const _jitterColor = new THREE.Color();
+function jitterColor(rgb: [number, number, number], rand: number): [number, number, number] {
+  _jitterColor.setRGB(rgb[0], rgb[1], rgb[2]);
+  // ±4° hue,±10% lightness
+  const dh = (rand - 0.5) * 0.022;
+  const dl = (rand - 0.5) * 0.12;
+  _jitterColor.offsetHSL(dh, 0, dl);
+  return [_jitterColor.r, _jitterColor.g, _jitterColor.b];
 }
 
 // =====================================================

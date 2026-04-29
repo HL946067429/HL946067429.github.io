@@ -1,5 +1,6 @@
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
+import * as THREE from "three";
 import Sun from "./Sun";
 import Sky from "./Sky";
 import Ground from "./Ground";
@@ -13,8 +14,13 @@ export default function Scene() {
     <Canvas
       shadows
       dpr={dpr}
-      camera={{ position: [4, 2.5, 5], fov: 50, near: 0.1, far: 500 }}
-      gl={{ antialias: true, powerPreference: "high-performance" }}
+      camera={{ position: [3, 2, 4], fov: 45, near: 0.05, far: 500 }}
+      gl={{
+        antialias: true,
+        powerPreference: "high-performance",
+        toneMapping: THREE.ACESFilmicToneMapping,
+        toneMappingExposure: 1.05,
+      }}
     >
       <Sky />
       <Sun />
@@ -24,7 +30,7 @@ export default function Scene() {
         makeDefault
         enableDamping
         target={[0, 1.2, 0]}
-        minDistance={2}
+        minDistance={1.2}
         maxDistance={25}
         maxPolarAngle={Math.PI / 2 - 0.05}
       />

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { buildPetal } from "./leafGeometry";
+import { getDiscTexture, getPetalDetailTexture } from "./textures";
 
 export interface FlowerHeadProps {
   /** 花盘半径(米) */
@@ -27,11 +28,9 @@ export interface FlowerHeadProps {
   sepalColor: string;
 }
 
-const GOLDEN_ANGLE = 137.508 * (Math.PI / 180);
-
 /**
  * 向日葵花盘:
- *   - DiscFlorets:数百朵管状花,Vogel 模型(Phyllotaxis)排列
+ *   - Disc:平面 + Vogel 螺旋种子点纹理(替代上千个小球,性能/视觉双赢)
  *   - Petals:一圈舌状花
  *   - Sepal:背面绿色萼片
  */
@@ -48,51 +47,35 @@ export default function FlowerHead({
   petalSenescentColor,
   sepalColor,
 }: FlowerHeadProps) {
-  // -- DiscFlorets --
-  const discGeometry = useMemo(() => new THREE.SphereGeometry(1, 8, 6), []);
-  const discMat = useMemo(
-    () => new THREE.MeshStandardMaterial({ roughness: 0.85 }),
-    [],
+  // -- 花盘 (一张 CircleGeometry + 程序化纹理) --
+  const discGeometry = useMemo(
+    () => new THREE.CircleGeometry(radius, 64),
+    [radius],
   );
-  const discRef = useRef<THREE.InstancedMesh>(null);
-  const FLORET_COUNT = 240;
+  const discTexture = useMemo(
+    () =>
+      getDiscTexture({
+        outerColor: discColor,
+        centerColor: discCenterColor ?? "#2a1808",
+      }),
+    [discColor, discCenterColor],
+  );
+  const discMat = useMemo(() => {
+    return new THREE.MeshStandardMaterial({
+      map: discTexture,
+      roughness: 0.78,
+      metalness: 0,
+      side: THREE.FrontSide,
+    });
+  }, [discTexture]);
 
+  // 成熟度调色:整盘随 ripeness 暗化(从开花期亮黄→灌浆深棕)
   useEffect(() => {
-    const im = discRef.current;
-    if (!im) return;
-    const tmp = new THREE.Matrix4();
-    const pos = new THREE.Vector3();
-    const quat = new THREE.Quaternion();
-    const scale = new THREE.Vector3();
-    const colorYoung = new THREE.Color(discColor);
-    const colorRipe = new THREE.Color(discCenterColor ?? "#2a1808");
-    const c = new THREE.Color();
-    // 中心最先变深(灌浆从中心起),整体随 ripeness 全变深
-    const maxR = Math.sqrt(FLORET_COUNT);
-    const floretRadius = (radius * 0.04) * 1.4;
-    for (let i = 0; i < FLORET_COUNT; i++) {
-      const r = (Math.sqrt(i + 0.5) / maxR) * radius * 0.92;
-      const theta = i * GOLDEN_ANGLE;
-      const x = r * Math.cos(theta);
-      const z = r * Math.sin(theta);
-      // 略略凸起(中心高,边缘平),且凹进表面 0.005
-      const y = 0.012 * (1 - r / radius);
-      pos.set(x, y, z);
-      quat.identity();
-      const fR = floretRadius * (0.6 + 0.4 * (1 - r / radius));
-      scale.set(fR, fR * 1.3, fR);
-      tmp.compose(pos, quat, scale);
-      im.setMatrixAt(i, tmp);
-
-      // 颜色:中心+成熟度共同决定深浅
-      const tCenter = 1 - r / radius;
-      const t = Math.min(1, ripeness + 0.4 * tCenter * ripeness);
-      c.copy(colorYoung).lerp(colorRipe, t);
-      im.setColorAt(i, c);
-    }
-    im.instanceMatrix.needsUpdate = true;
-    if (im.instanceColor) im.instanceColor.needsUpdate = true;
-  }, [radius, discColor, discCenterColor, ripeness]);
+    const c = new THREE.Color(0xffffff);
+    const dark = new THREE.Color(0x6a4a20);
+    c.lerp(dark, ripeness);
+    discMat.color.copy(c);
+  }, [discMat, ripeness]);
 
   // -- Petals --
   const petalGeometry = useMemo(() => {
@@ -102,14 +85,17 @@ export default function FlowerHead({
       segments: 8,
     });
   }, [radius]);
+  const petalDetailTex = useMemo(() => getPetalDetailTexture(), []);
   const petalMat = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        map: petalDetailTex,
         side: THREE.DoubleSide,
-        roughness: 0.6,
-        vertexColors: false,
+        roughness: 0.55,
+        metalness: 0,
       }),
-    [],
+    [petalDetailTex],
   );
   const petalRef = useRef<THREE.InstancedMesh>(null);
 
@@ -207,11 +193,14 @@ export default function FlowerHead({
         rotation={[-Math.PI / 2, 0, 0]}
         receiveShadow
       />
-      {/* 管状花阵列 */}
-      <instancedMesh
-        ref={discRef}
-        args={[discGeometry, discMat, FLORET_COUNT]}
+      {/* 花盘(管状花)*/}
+      <mesh
+        geometry={discGeometry}
+        material={discMat}
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, 0.001, 0]}
         castShadow
+        receiveShadow
       />
       {/* 舌状花瓣 */}
       <instancedMesh

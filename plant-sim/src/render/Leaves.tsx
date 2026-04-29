@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { buildCordateLeaf } from "./leafGeometry";
+import { getLeafDetailTexture, getLeafRoughnessTexture } from "./textures";
 
 export interface LeafSlot {
   /** 沿茎的高度比例 0(基)→1(顶) */
@@ -57,16 +58,17 @@ export default function Leaves({
     () => buildCordateLeaf({ length: unitLength, serration: 0.6 }),
     [unitLength],
   );
-  const material = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        vertexColors: false,
-        side: THREE.DoubleSide,
-        roughness: 0.55,
-        metalness: 0,
-      }),
-    [],
-  );
+  const material = useMemo(() => {
+    const m = new THREE.MeshStandardMaterial({
+      color: 0xffffff, // 实际颜色来自 instanceColor;贴图提供细节
+      map: getLeafDetailTexture(),
+      roughnessMap: getLeafRoughnessTexture(),
+      roughness: 0.62,
+      metalness: 0,
+      side: THREE.DoubleSide,
+    });
+    return m;
+  }, []);
 
   // count 上限固定,以便 InstancedMesh 复用
   const maxCount = leaves.length;
