@@ -3,7 +3,7 @@ import { OrbitControls } from "@react-three/drei";
 import Sun from "./Sun";
 import Sky from "./Sky";
 import Ground from "./Ground";
-import Plant from "./Plant";
+import PlantRegistry from "./PlantRegistry";
 import { useResponsiveDPR } from "@/hooks/useResponsiveDPR";
 
 export default function Scene() {
@@ -19,7 +19,7 @@ export default function Scene() {
       <Sky />
       <Sun />
       <Ground />
-      <Plant />
+      <PlantRegistry />
       <OrbitControls
         makeDefault
         enableDamping
