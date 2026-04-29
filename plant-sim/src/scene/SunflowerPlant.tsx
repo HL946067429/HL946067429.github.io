@@ -253,9 +253,24 @@ export default function SunflowerPlant() {
   );
 
   const headGroupRef = useRef<THREE.Group>(null);
+  const swayGroupRef = useRef<THREE.Group>(null);
 
   // 头部姿态:挂在茎尖,绕 Y 旋朝向(方位),绕 X 旋俯仰角(让花盘正对天/太阳)
-  useFrame(() => {
+  // 同时把整株做小幅风摆动(把整个 swayGroup 绕底部小角度倾斜)
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+
+    // ==== 整株风摆 ====
+    // 用两频叠加做"非完全周期"的自然感,幅度跟茎高成正比但有上限
+    if (swayGroupRef.current) {
+      const ampX = Math.min(0.04, 0.018 * visual.stemHeight);
+      const ampZ = Math.min(0.03, 0.014 * visual.stemHeight);
+      const swayX = Math.sin(t * 0.9) * ampX + Math.sin(t * 2.1 + 1.3) * ampX * 0.35;
+      const swayZ = Math.cos(t * 1.1 + 0.7) * ampZ + Math.cos(t * 2.4) * ampZ * 0.4;
+      // 围绕基部摆,旋转轴:绕 Z 轴让顶端往 ±X 摇,绕 X 轴让顶端往 ±Z 摇
+      swayGroupRef.current.rotation.set(swayZ, 0, swayX);
+    }
+
     const g = headGroupRef.current;
     if (!g) return;
     const tipPos = stemTipPosition(visual.stemHeight, visual.stemBend);
@@ -295,11 +310,14 @@ export default function SunflowerPlant() {
 
     // 茎弯曲(下垂)进一步把头朝下压,且早期略偏后再回正
     xRot += visual.stemBend * 0.85;
-    g.rotation.set(xRot, yRot, 0);
+    // 给花头自身叠加更明显的风摆(花盘大,迎风面大,会更明显地摆)
+    const headWindX = Math.sin(t * 1.4 + 0.5) * 0.025;
+    const headWindY = Math.cos(t * 1.7) * 0.02;
+    g.rotation.set(xRot + headWindX, yRot + headWindY, 0);
   });
 
   return (
-    <group>
+    <group ref={swayGroupRef}>
       <Stem
         height={visual.stemHeight}
         baseRadius={species.morphology.stemBaseRadius}

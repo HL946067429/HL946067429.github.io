@@ -39,9 +39,16 @@ export default function Stem({
     const tipDz = windOffset[1];
     const tipDy = Math.cos(bendAngle) * height;
 
+    // 自然 S 形:在中段把控制点往随机方向轻微偏移(对齐文档"曲线生长"原则)
+    // 偏移幅度 ~ 1-1.5% 株高,做个轻微"歪扭",避免完全笔直的塑料感
+    const sway = height * 0.012;
     const p0 = new THREE.Vector3(0, 0, 0);
-    const p1 = new THREE.Vector3(0, height * 0.4, 0);
-    const p2 = new THREE.Vector3(tipDx * 0.3, height * 0.75, tipDz * 0.3);
+    const p1 = new THREE.Vector3(sway * 0.6, height * 0.38, -sway * 0.4);
+    const p2 = new THREE.Vector3(
+      tipDx * 0.3 - sway * 0.8,
+      height * 0.72,
+      tipDz * 0.3 + sway * 0.5,
+    );
     const p3 = new THREE.Vector3(tipDx, tipDy, tipDz);
     const curve = new THREE.CubicBezierCurve3(p0, p1, p2, p3);
 
