@@ -5,3 +5,5 @@ node_modules
 .idea
 travel-memories/node_modules
 travel-memories/dist
+plant-sim/node_modules
+plant-sim/dist

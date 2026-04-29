@@ -1,4 +1,4 @@
-name: Deploy VuePress + Travel Memories + WanderLog + GGL to Pages
+name: Deploy VuePress + Travel Memories + WanderLog + GGL + Plant-Sim to Pages
 
 on:
   push:
@@ -41,6 +41,7 @@ jobs:
           (cd travel-memories && pnpm install) &
           (cd wanderlog && npm ci) &
           (cd ggl && npm ci) &
+          (cd plant-sim && npm install --no-audit --no-fund) &
           wait
 
       # 构建 VuePress（最慢，先启动）
@@ -53,6 +54,7 @@ jobs:
           (cd travel-memories && pnpm build) &
           (cd wanderlog && npm run build) &
           (cd ggl && npm run build) &
+          (cd plant-sim && npm run build) &
           wait
 
       # Merge all outputs
@@ -75,6 +77,11 @@ jobs:
           mkdir -p .vuepress/dist/ggl/admin .vuepress/dist/ggl/wheel
           cp .vuepress/dist/ggl/index.html .vuepress/dist/ggl/admin/index.html
           cp .vuepress/dist/ggl/index.html .vuepress/dist/ggl/wheel/index.html
+
+          # Plant Sim
+          rm -rf .vuepress/dist/plant-sim
+          cp -r plant-sim/dist .vuepress/dist/plant-sim
+          cp .vuepress/dist/plant-sim/index.html .vuepress/dist/plant-sim/404.html
 
       - name: Upload Artifact
         if: success()
