@@ -32,13 +32,15 @@ export interface LeavesProps {
 
 const _m = new THREE.Matrix4();
 const _q = new THREE.Quaternion();
-const _qy = new THREE.Quaternion();
-const _qz = new THREE.Quaternion();
-const _qpitch = new THREE.Quaternion();
-const _qcurl = new THREE.Quaternion();
+const _qAz = new THREE.Quaternion();
+const _qPitch = new THREE.Quaternion();
+const _qCurl = new THREE.Quaternion();
 const _pos = new THREE.Vector3();
 const _scale = new THREE.Vector3();
 const _color = new THREE.Color();
+const _AXIS_X = new THREE.Vector3(1, 0, 0);
+const _AXIS_Y = new THREE.Vector3(0, 1, 0);
+const _AXIS_Z = new THREE.Vector3(0, 0, 1);
 
 /**
  * 用 InstancedMesh 渲染所有叶子;每个槽位对应一个实例。
@@ -93,12 +95,12 @@ export default function Leaves({
       const xBend = Math.sin(stemBend) * stemHeight * 0.35 * slot.yFrac * slot.yFrac;
       _pos.set(xBend, y, 0);
 
-      // 旋转:先绕 Y(orient azimuth),再绕 Z(pitch 上扬),再绕 X(curl 下垂)
-      _qy.setFromAxisAngle(new THREE.Vector3(0, 1, 0), slot.azimuth);
-      _qpitch.setFromAxisAngle(new THREE.Vector3(0, 0, 1), slot.pitch);
-      _qcurl.setFromAxisAngle(new THREE.Vector3(0, 1, 0), slot.curl * 0.5);
-      // 叶子模型的 +X 是叶尖方向;先外旋叶柄朝 +X,然后整体绕 Y 旋 azimuth
-      _q.copy(_qy).multiply(_qpitch).multiply(_qcurl);
+      // 叶子局部坐标:+X=叶尖方向,+Y=叶面法向(向上),+Z=叶宽方向
+      // 旋转顺序(从内到外):curl 绕 X(沿叶轴卷曲),pitch 绕 Z(叶尖抬升/下垂),azimuth 绕 Y(绕茎旋转)
+      _qCurl.setFromAxisAngle(_AXIS_X, slot.curl * 0.9);
+      _qPitch.setFromAxisAngle(_AXIS_Z, slot.pitch); // 正值 = 叶尖向上
+      _qAz.setFromAxisAngle(_AXIS_Y, slot.azimuth);
+      _q.copy(_qAz).multiply(_qPitch).multiply(_qCurl);
 
       const s = slot.length / Math.max(0.001, unitLength);
       _scale.set(s, s, s);

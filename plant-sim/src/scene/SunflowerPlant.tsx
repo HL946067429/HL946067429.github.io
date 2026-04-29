@@ -236,44 +236,48 @@ export default function SunflowerPlant() {
 
   const headGroupRef = useRef<THREE.Group>(null);
 
-  // 向日性 + 头部朝向
+  // 头部姿态:挂在茎尖,绕 Y 旋朝向(方位),绕 X 旋俯仰角(让花盘正对天/太阳)
   useFrame(() => {
     const g = headGroupRef.current;
     if (!g) return;
     const tipPos = stemTipPosition(visual.stemHeight, visual.stemBend);
     g.position.set(tipPos[0], tipPos[1], tipPos[2]);
 
-    // 默认花盘朝向 +Y(向上)
-    // 我们把 group 的局部坐标系做成"花盘平面在 XZ 上",绕 X 旋转抬头/低头
-    // 为了简单,从茎切线方向构造一个向上向量,然后把茎弯进去叠加一点低头
+    // 计算 disc 朝向的目标方向向量 desired = (sx, sy, sz) (单位)
+    // 默认 disc 法向 = +Y。我们用 (xRot, yRot) 把 +Y 转到 desired:
+    //   xRot = -(π/2 - 仰角)  使 +Y 抬到 (0, sin alt, cos alt)
+    //   yRot = -azimuth       绕 Y 旋使其落到 (sin az * cos alt, sin alt, cos az * cos alt)
+    // 茎下垂(stemBend)使 disc 进一步绕 X 朝下;花瓣盛放时(bloom)让 disc 略低头(自然姿态)
+    let xRot: number;
+    let yRot: number;
+
     if (visual.heliotropic && visual.visibleHead) {
       const now = useTimeline.getState().now;
       const loc = useEnv.getState().location;
       const sun = computeSolar(new Date(now), loc.lat, loc.lon);
-      // 花盘正朝太阳方向(在水平面上跟踪太阳方位,垂直方向取个固定上仰)
-      const az = Math.atan2(sun.direction[0], sun.direction[2]);
-      // 早晨偏东、傍晚偏西;夜间锁回正南
-      const targetAz = sun.altitude > -0.1 ? az : 0;
-      g.rotation.set(0, targetAz, 0);
+      // 太阳低于地平线时,锁朝东
+      if (sun.altitude < 0.05) {
+        const fixedAlt = 0.35;
+        xRot = -(Math.PI / 2 - fixedAlt);
+        yRot = Math.PI / 2; // 朝东(suncalc:az=-π/2 是东,我们的方向向量为 (-cosAlt,..,0))
+      } else {
+        const sunAz = Math.atan2(sun.direction[0], sun.direction[2]);
+        xRot = -(Math.PI / 2 - sun.altitude);
+        yRot = -sunAz;
+      }
     } else if (visual.visibleHead) {
-      // 不向日:固定朝东(向日葵成熟期典型行为)
-      g.rotation.set(0, -Math.PI / 2, 0);
+      // 成熟期固定朝东,略上仰
+      const fixedAlt = 0.3;
+      xRot = -(Math.PI / 2 - fixedAlt);
+      yRot = Math.PI / 2;
     } else {
-      g.rotation.set(0, 0, 0);
+      xRot = 0;
+      yRot = 0;
     }
-  });
 
-  // 头部局部姿态:从茎切线方向 + 低头量,把"花盘平面"摆出来
-  // 当 stemBend = 0 时,花盘水平面在 XZ(法向 +Y);bend 越大,把法向旋向 +X
-  const headTiltGroupRef = useRef<THREE.Group>(null);
-  useFrame(() => {
-    const g = headTiltGroupRef.current;
-    if (!g) return;
-    // 基础抬头:让花盘从水平改为略略竖直(对着太阳更自然)
-    const baseTilt = -0.45 + visual.bloom * 0.25;
-    // 弯曲低头:低头量随 stemBend
-    const droop = visual.stemBend;
-    g.rotation.set(baseTilt + droop, 0, 0);
+    // 茎弯曲(下垂)进一步把头朝下压,且早期略偏后再回正
+    xRot += visual.stemBend * 0.85;
+    g.rotation.set(xRot, yRot, 0);
   });
 
   return (
@@ -295,21 +299,19 @@ export default function SunflowerPlant() {
 
       {visual.visibleHead && species.flower && (
         <group ref={headGroupRef}>
-          <group ref={headTiltGroupRef}>
-            <FlowerHead
-              radius={species.flower.headRadius * visual.headRadiusScale}
-              petalCount={species.flower.petalCount}
-              bloom={visual.bloom}
-              wilt={visual.wilt}
-              ripeness={visual.ripeness}
-              petalColor={species.flower.petalColor}
-              petalTipColor={species.flower.petalTipColor}
-              discColor={species.flower.discColor}
-              discCenterColor={species.flower.discCenterColor}
-              petalSenescentColor={species.flower.petalSenescentColor}
-              sepalColor={species.flower.sepalColor}
-            />
-          </group>
+          <FlowerHead
+            radius={species.flower.headRadius * visual.headRadiusScale}
+            petalCount={species.flower.petalCount}
+            bloom={visual.bloom}
+            wilt={visual.wilt}
+            ripeness={visual.ripeness}
+            petalColor={species.flower.petalColor}
+            petalTipColor={species.flower.petalTipColor}
+            discColor={species.flower.discColor}
+            discCenterColor={species.flower.discCenterColor}
+            petalSenescentColor={species.flower.petalSenescentColor}
+            sepalColor={species.flower.sepalColor}
+          />
         </group>
       )}
     </group>

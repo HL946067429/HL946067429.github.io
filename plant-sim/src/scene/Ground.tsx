@@ -6,7 +6,7 @@ export default function Ground() {
   const mat = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: "#3a4a2a",
+        color: "#6b7a3a",
         roughness: 0.95,
         metalness: 0,
       }),

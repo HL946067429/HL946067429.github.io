@@ -126,28 +126,36 @@ export default function FlowerHead({
     const colorTip = new THREE.Color(petalTipColor ?? petalColor);
     const colorWilt = new THREE.Color(petalSenescentColor);
     const c = new THREE.Color();
+    const axisY = new THREE.Vector3(0, 1, 0);
+    const axisZ = new THREE.Vector3(0, 0, 1);
 
-    // bloom 决定花瓣外翻角度:0 时几乎竖直贴着花蕾,1 时水平向外
-    // 轻微随机化让花瓣不完全对齐
+    // 花瓣局部:+X=花瓣尖向外,+Y=法向(向上),+Z=宽
+    // bloom 0(蕾,瓣向心轴上抬)→1(完全展开,水平外伸)
+    // wilt  0(鲜)→1(瓣下垂)
     for (let i = 0; i < petalCount; i++) {
       const azimuth = (i / petalCount) * Math.PI * 2;
-      // 略微随机相位
       const jitter = ((i * 1234567) % 100) / 100 - 0.5;
-      const tilt = (1 - bloom) * (Math.PI * 0.55) + wilt * 0.6 - 0.05; // 蕾期向上,凋谢下垂
-      // 位置:花瓣根部贴在花盘外缘
-      const baseR = radius * 0.85;
+      // 花瓣"上抬量":bud 时 ~80° 几乎贴着花蕾轴心,完全开放时几乎水平
+      const closingTilt = (1 - bloom) * (Math.PI * 0.45);
+      // 凋谢"下垂量":让花瓣超越水平往下垂
+      const droopTilt = -wilt * 0.7;
+      const tilt = closingTilt + droopTilt;
+      // 花瓣根部贴花盘外缘
+      const baseR = radius * 0.78;
       pos.set(
         Math.cos(azimuth) * baseR,
         0.005,
         Math.sin(azimuth) * baseR,
       );
-      qy.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -azimuth + Math.PI / 2);
-      qz.setFromAxisAngle(new THREE.Vector3(0, 0, 1), -tilt);
+      // 顺序:先把花瓣"提起"(qz),再绕花心 Y 轴转到对应方位
+      // 注意:qy 旋转角度 = -azimuth(让 +X 落到 (cos az, 0, sin az))
+      qy.setFromAxisAngle(axisY, -azimuth);
+      qz.setFromAxisAngle(axisZ, tilt);
       q.copy(qy).multiply(qz);
       // 凋谢时尺寸缩小
-      const sLen = (0.4 + 0.6 * bloom) * (1 - 0.6 * wilt);
-      const sWid = (0.5 + 0.5 * bloom) * (1 - 0.5 * wilt);
-      scale.set(sLen, sWid + 0.001 * jitter, sWid);
+      const sLen = (0.5 + 0.5 * bloom) * (1 - 0.6 * wilt);
+      const sWid = (0.6 + 0.4 * bloom) * (1 - 0.4 * wilt);
+      scale.set(sLen, sWid * (1 + 0.04 * jitter), sWid);
       tmp.compose(pos, q, scale);
       im.setMatrixAt(i, tmp);
 

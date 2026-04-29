@@ -68,8 +68,8 @@ export const SUNFLOWER: SpeciesSpec = {
   },
 
   leaf: {
-    colorYoung: "#86c45a",
-    colorMature: "#3a7a32",
+    colorYoung: "#a8d76e",
+    colorMature: "#5ca440",
     colorSenescent: "#caa028",
     colorDead: "#5a3a1a",
     shape: "cordate", // 心形

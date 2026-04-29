@@ -2,12 +2,13 @@ import * as THREE from "three";
 
 /**
  * 心形(cordate)叶片参数化几何。
- * 在 XY 平面构造,X 沿叶柄→叶尖方向,Y 横向,Z 用作轻微杯状起伏。
+ * 局部坐标:X 沿叶柄→叶尖方向,Z 横向(叶宽),Y 轻微杯状起伏(也是法向)。
+ * 这样叶子默认是水平躺平的(法向 +Y),便于上层只需绕 Y(方位)、绕 Z(俯仰)、绕 X(卷曲)旋转。
  *
  * 思路:
  * - 沿叶轴 t∈[0,1] 取若干切片,每片宽度由心形半宽函数 w(t) 决定
  * - 锯齿:在 w(t) 上叠加高频小扰动
- * - 主脉:中线略凸(z+),叶缘略下垂(z-),形成微弱杯状
+ * - 主脉:中线略凸(y+),叶缘略下垂(y-),形成微弱杯状
  * - 顶点色:从基部到尖部、从主脉到叶缘各做插值,后续可在 shader 用
  */
 export function buildCordateLeaf(opts: {
@@ -51,11 +52,11 @@ export function buildCordateLeaf(opts: {
     for (let j = 0; j <= widthSegments; j++) {
       // lateral 从 -1(左缘)到 +1(右缘)
       const lateral = (j / widthSegments) * 2 - 1;
-      const y = lateral * hw;
-      const z = cupZ(t, lateral) * widthScale;
-      positions.push(x, y, z);
-      // 法向先粗略给 +Z,后续 computeVertexNormals
-      normals.push(0, 0, 1);
+      const widthOffset = lateral * hw;     // 叶宽方向,放进世界 Z
+      const cup = cupZ(t, lateral) * widthScale; // 杯状起伏,放进世界 Y(法向)
+      positions.push(x, cup, widthOffset);
+      // 法向先粗略给 +Y,后续 computeVertexNormals
+      normals.push(0, 1, 0);
       uvs.push(t, (lateral + 1) / 2);
       // 顶点色通道:r=t(沿叶轴位置),g=|lateral|(到叶缘的距离)
       colors.push(t, Math.abs(lateral), 1);
@@ -105,13 +106,14 @@ export function buildPetal(opts: {
     const t = i / segments;
     const x = t * length;
     const hw = halfWidth(t) * width;
-    // 上表面 (z = +eps),下表面 (z = -eps) — 我们做单面,DoubleSide 材质
-    const cup = 0.18 * Math.sin(Math.PI * t) * width;
+    // 中线略略上抬(y+),叶/瓣缘下沉(y-eps),形成微弱杯状,法向朝 +Y
+    const midRise = 0.18 * Math.sin(Math.PI * t) * width;
     for (let s = -1; s <= 1; s += 2) {
-      const y = s * hw;
-      const z = (1 - Math.abs(s)) * cup; // 中线略上抬
-      positions.push(x, y, z);
-      normals.push(0, 0, 1);
+      const widthOffset = s * hw;
+      // 中线: |s|=0,沿 y 抬;边缘: |s|=1,y=0
+      const yLift = Math.abs(s) === 0 ? midRise : 0;
+      positions.push(x, yLift, widthOffset);
+      normals.push(0, 1, 0);
       uvs.push(t, (s + 1) / 2);
       colors.push(t, 0, 0);
     }

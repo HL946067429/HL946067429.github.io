@@ -49,8 +49,8 @@ export default function Sun() {
       sunMeshRef.current.visible = s.altitude > -0.05;
     }
     if (ambientRef.current) {
-      // 夜间留一点点环境光，避免全黑
-      ambientRef.current.intensity = s.isDay ? 0.25 + 0.15 * s.cosZenith : 0.08;
+      // 白天保留充足环境光,避免叶面背向太阳时一片漆黑
+      ambientRef.current.intensity = s.isDay ? 0.55 + 0.25 * s.cosZenith : 0.12;
     }
   });
 
