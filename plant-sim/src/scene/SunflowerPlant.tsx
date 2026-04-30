@@ -40,16 +40,19 @@ function deriveVisualState(spec: SpeciesSpec, gdd: number) {
   let bend = 0;
   if (fruitStage && gdd >= fruitStage.gddStart) {
     if (gdd <= fruitStage.gddEnd) {
-      bend = 0.05 + (0.25 * (gdd - fruitStage.gddStart)) /
+      // R6:开花结束、籽实开始灌浆,头部因重量明显前倾(~30°)
+      bend = 0.08 + (0.5 * (gdd - fruitStage.gddStart)) /
         Math.max(1, fruitStage.gddEnd - fruitStage.gddStart);
     } else if (senesStage && gdd <= senesStage.gddEnd) {
-      bend = 0.3 + (0.6 * (gdd - senesStage.gddStart)) /
+      // R7-R8:衰老期,头进一步下垂到接近 80°
+      bend = 0.58 + (0.85 * (gdd - senesStage.gddStart)) /
         Math.max(1, senesStage.gddEnd - senesStage.gddStart);
     } else if (deathStage && gdd >= deathStage.gddStart) {
-      bend = 1.1;
+      // R9:植株死亡,头几乎垂直朝下
+      bend = 1.8;
     }
   }
-  bend = Math.min(bend, 1.35);
+  bend = Math.min(bend, 2.0);
 
   // 茎颜色:嫩→成熟→木质化干枯
   const stemColor = pickStemColor(spec, gdd);
@@ -59,18 +62,42 @@ function deriveVisualState(spec: SpeciesSpec, gdd: number) {
     m.maxLeafCount * smoothStep01(stemT) * 1.05, // 略多于茎,在末期会逐步脱落
   );
   const leafSlots: LeafSlot[] = [];
-  // 越靠下的叶子越早出现并越早衰老
+  // 真实向日葵叶序:前 4 节为"对生 + decussate(每节相邻 90°)",第 5 节起转为黄金角螺旋。
+  // 假设 maxLeafCount 中前 8 片(4 对)走对生,余下走螺旋。
+  // 节点数 = PAIRED_NODES + (maxLeafCount - 2*PAIRED_NODES) = maxLeafCount - PAIRED_NODES
+  const PAIRED_NODES = 4;
+  const PAIRED_LEAVES = PAIRED_NODES * 2; // 8
+  const SPIRAL_LEAVES = Math.max(0, m.maxLeafCount - PAIRED_LEAVES);
+  const TOTAL_NODES = PAIRED_NODES + SPIRAL_LEAVES; // 4 + 16 = 20
+  // 螺旋段起始方位 = 最后一个对生节点角度 + 半个黄金角(避免重叠)
+  const SPIRAL_BASE_AZ = (PAIRED_NODES - 1) * (Math.PI / 2) + GOLDEN_RAD * 0.5;
+
   for (let i = 0; i < m.maxLeafCount; i++) {
-    // 加入小的位置/角度/大小扰动,避免所有叶子完全克隆
-    const jitterY = (hash01(i + 1) - 0.5) * 0.04;
-    const jitterAz = (hash01(i + 2) - 0.5) * 0.18;
+    // 抖动
+    const jitterY = (hash01(i + 1) - 0.5) * 0.03;
+    const jitterAz = (hash01(i + 2) - 0.5) * 0.14;
     const jitterPitch = (hash01(i + 3) - 0.5) * 0.25;
     const sizeJitter = 0.82 + 0.36 * hash01(i + 4);
 
-    const yFrac = 0.06 + (i + 0.5) * (0.85 / m.maxLeafCount) + jitterY;
-    const azimuth = i * GOLDEN_RAD + jitterAz;
-    // 这片叶子"出生"时的茎进度阈值:i 越大越晚
-    const birthT = i / m.maxLeafCount;
+    // 计算节点索引 + 节点内方位
+    let nodeIdx: number;
+    let nodeAz: number;
+    if (i < PAIRED_LEAVES) {
+      // 对生段:每对在同一节点,两侧反对(180°),相邻节点旋转 90°(decussate)
+      nodeIdx = Math.floor(i / 2);
+      const sideOf = i % 2;
+      nodeAz = nodeIdx * (Math.PI / 2) + sideOf * Math.PI;
+    } else {
+      // 螺旋段:每片单独占一节
+      const spiralOffset = i - PAIRED_LEAVES;
+      nodeIdx = PAIRED_NODES + spiralOffset;
+      nodeAz = SPIRAL_BASE_AZ + spiralOffset * GOLDEN_RAD;
+    }
+
+    const yFrac = 0.06 + (nodeIdx + 0.5) * (0.85 / TOTAL_NODES) + jitterY;
+    const azimuth = nodeAz + jitterAz;
+    // 这片叶子"出生"时的茎进度阈值:节点越高越晚
+    const birthT = nodeIdx / TOTAL_NODES;
     const ageT = stemT - birthT;
     // 还没到出生时间
     if (ageT <= -0.05) {
@@ -136,17 +163,23 @@ function deriveVisualState(spec: SpeciesSpec, gdd: number) {
   let bloom = 0;
   let wilt = 0;
   let ripeness = 0;
+  // bloomFront: 花盘的"开放前线"半径(0=外缘,即未开始;1=花心,即全部开完)。
+  // 真实向日葵管状花从外圈往中心一圈一圈开,5-8 天扫完。
+  let bloomFront = 0;
   if (buddingStage && gdd >= buddingStage.gddStart) {
     if (gdd <= buddingStage.gddEnd) {
       const t = (gdd - buddingStage.gddStart) /
         Math.max(1, buddingStage.gddEnd - buddingStage.gddStart);
       headRadiusScale = 0.25 + 0.45 * t; // 25%→70%
       bloom = 0;
+      bloomFront = 0;
     } else if (floweringStage && gdd <= floweringStage.gddEnd) {
       const t = (gdd - floweringStage.gddStart) /
         Math.max(1, floweringStage.gddEnd - floweringStage.gddStart);
       headRadiusScale = 0.7 + 0.3 * smoothStep01(t);
       bloom = smoothStep01(t * 1.4);
+      // 开放前线在 flowering 期间从 0 推到 1
+      bloomFront = smoothStep01(t * 1.1);
     } else if (fruitStage && gdd <= fruitStage.gddEnd) {
       const t = (gdd - fruitStage.gddStart) /
         Math.max(1, fruitStage.gddEnd - fruitStage.gddStart);
@@ -154,6 +187,7 @@ function deriveVisualState(spec: SpeciesSpec, gdd: number) {
       bloom = 1 - 0.4 * t; // 花瓣开始凋谢
       wilt = t * 0.5;
       ripeness = t * 0.7;
+      bloomFront = 1; // 全开完,只剩种子
     } else if (senesStage && gdd <= senesStage.gddEnd) {
       const t = (gdd - senesStage.gddStart) /
         Math.max(1, senesStage.gddEnd - senesStage.gddStart);
@@ -161,11 +195,13 @@ function deriveVisualState(spec: SpeciesSpec, gdd: number) {
       bloom = 0.6 - 0.6 * t;
       wilt = 0.5 + 0.5 * t;
       ripeness = 0.7 + 0.3 * t;
+      bloomFront = 1;
     } else if (deathStage && gdd >= deathStage.gddStart) {
       headRadiusScale = 0.9;
       bloom = 0;
       wilt = 1;
       ripeness = 1;
+      bloomFront = 1;
     }
   }
 
@@ -183,6 +219,7 @@ function deriveVisualState(spec: SpeciesSpec, gdd: number) {
     leafSlots,
     headRadiusScale,
     bloom,
+    bloomFront,
     wilt,
     ripeness,
     heliotropic,
@@ -343,6 +380,7 @@ export default function SunflowerPlant() {
             radius={species.flower.headRadius * visual.headRadiusScale}
             petalCount={species.flower.petalCount}
             bloom={visual.bloom}
+            bloomFront={visual.bloomFront}
             wilt={visual.wilt}
             ripeness={visual.ripeness}
             petalColor={species.flower.petalColor}

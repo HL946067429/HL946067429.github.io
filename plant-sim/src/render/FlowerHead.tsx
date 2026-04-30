@@ -10,6 +10,8 @@ export interface FlowerHeadProps {
   petalCount: number;
   /** 花瓣绽放进度 0(蕾)→1(完全开) */
   bloom: number;
+  /** 管状花开放前线 0(外缘未开始)→1(全部开完到中心) */
+  bloomFront: number;
   /** 花瓣凋谢进度 0(鲜)→1(凋落) */
   wilt: number;
   /** 花盘成熟度 0(青色)→1(籽实棕褐) */
@@ -38,6 +40,7 @@ export default function FlowerHead({
   radius,
   petalCount,
   bloom,
+  bloomFront,
   wilt,
   ripeness,
   petalColor,
@@ -62,7 +65,7 @@ export default function FlowerHead({
   );
   const discBumpTexture = useMemo(() => getDiscBumpTexture(), []);
   const discMat = useMemo(() => {
-    return new THREE.MeshStandardMaterial({
+    const m = new THREE.MeshStandardMaterial({
       map: discTexture,
       bumpMap: discBumpTexture,
       bumpScale: 0.04,
@@ -70,15 +73,45 @@ export default function FlowerHead({
       metalness: 0,
       side: THREE.FrontSide,
     });
+    // 注入 shader,实现"管状花开放前线"由外向内推进
+    const uniforms = { uBloomFront: { value: 0 } };
+    m.userData.uniforms = uniforms;
+    m.onBeforeCompile = (shader) => {
+      shader.uniforms.uBloomFront = uniforms.uBloomFront;
+      shader.fragmentShader =
+        `uniform float uBloomFront;\n` +
+        shader.fragmentShader.replace(
+          "#include <map_fragment>",
+          `
+          #include <map_fragment>
+          // 计算到花盘中心的归一化半径(CircleGeometry 默认 UV 中心 (0.5,0.5))
+          vec2 uvCentered = vMapUv - vec2(0.5);
+          float rDisc = length(uvCentered) * 2.0; // 0 中心,1 外缘
+          float ringR = 1.0 - uBloomFront;
+          // 内侧未开放(preTint 偏绿黄),外侧已开放(保留 map 的棕色)
+          float bloomedSide = smoothstep(ringR - 0.02, ringR + 0.02, rDisc);
+          // 开放前线 = 一圈亮黄(花粉色)
+          float ringBand = exp(-pow((rDisc - ringR) * 14.0, 2.0));
+          vec3 preTint = vec3(0.6, 0.65, 0.28);
+          vec3 ringColor = vec3(1.0, 0.78, 0.18);
+          diffuseColor.rgb = mix(diffuseColor.rgb * preTint * 1.55, diffuseColor.rgb, bloomedSide);
+          diffuseColor.rgb = mix(diffuseColor.rgb, ringColor, clamp(ringBand, 0.0, 1.0) * 0.88);
+          `,
+        );
+    };
+    return m;
   }, [discTexture, discBumpTexture]);
 
-  // 成熟度调色:整盘随 ripeness 暗化(从开花期亮黄→灌浆深棕)
+  // 成熟度调色 + 开放前线推进
   useEffect(() => {
     const c = new THREE.Color(0xffffff);
     const dark = new THREE.Color(0x6a4a20);
     c.lerp(dark, ripeness);
     discMat.color.copy(c);
-  }, [discMat, ripeness]);
+    const u = (discMat.userData as { uniforms?: { uBloomFront: { value: number } } })
+      .uniforms;
+    if (u?.uBloomFront) u.uBloomFront.value = bloomFront;
+  }, [discMat, ripeness, bloomFront]);
 
   // -- Petals --
   const petalGeometry = useMemo(() => {

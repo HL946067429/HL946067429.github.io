@@ -54,7 +54,7 @@ function speckle(
  * 输出:白基底 + 主脉/侧脉/边缘暗化。沿 U=length(0→tip)、V=width。
  * ============================================================ */
 export function getLeafDetailTexture(): THREE.Texture {
-  const key = "leaf-detail-v2";
+  const key = "leaf-detail-v3-palmate";
   const cached = _cache.get(key);
   if (cached) return cached;
 
@@ -71,57 +71,85 @@ export function getLeafDetailTexture(): THREE.Texture {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
 
-  // 主脉
-  ctx.strokeStyle = "rgba(40,40,40,0.55)";
-  ctx.lineWidth = 5;
-  ctx.beginPath();
-  ctx.moveTo(0, H / 2);
-  ctx.lineTo(W, H / 2);
-  ctx.stroke();
+  // === 掌状(palmate)脉序 ===
+  // 向日葵叶子典型的脉相:3-5 条主脉从叶柄基部(U=0)呈放射状散开
+  // 我们在叶基(x=0, y=H/2)处发出 5 条主脉,向叶尖+叶缘方向扇形展开
+  const baseX = 4;
+  const baseY = H / 2;
+  const tipX = W - 4;
 
-  // 侧脉
-  ctx.strokeStyle = "rgba(60,60,60,0.4)";
-  ctx.lineWidth = 1.6;
-  const sideCount = 9;
-  for (let i = 0; i < sideCount; i++) {
-    const t = (i + 1) / (sideCount + 1);
-    const x0 = t * W;
-    const remain = W - x0;
-    const reach = remain * 0.7;
-    // 上分支
+  // 5 条主脉的目标点(到达叶轮廓附近)
+  const veinTargets = [
+    { x: tipX, y: H * 0.5, w: 4.5, alpha: 0.65 }, // 中脉(最强)
+    { x: tipX * 0.9, y: H * 0.18, w: 3.2, alpha: 0.55 }, // 上侧主脉
+    { x: tipX * 0.9, y: H * 0.82, w: 3.2, alpha: 0.55 }, // 下侧主脉
+    { x: tipX * 0.65, y: H * 0.05, w: 2.4, alpha: 0.45 }, // 上侧副主脉
+    { x: tipX * 0.65, y: H * 0.95, w: 2.4, alpha: 0.45 }, // 下侧副主脉
+  ];
+
+  for (const v of veinTargets) {
+    ctx.strokeStyle = `rgba(40,55,18,${v.alpha})`;
+    ctx.lineWidth = v.w;
     ctx.beginPath();
-    ctx.moveTo(x0, H / 2);
-    ctx.bezierCurveTo(
-      x0 + reach * 0.3, H / 2 - H * 0.1,
-      x0 + reach * 0.7, H * 0.18,
-      x0 + reach, H * 0.05,
-    );
-    ctx.stroke();
-    // 下分支
-    ctx.beginPath();
-    ctx.moveTo(x0, H / 2);
-    ctx.bezierCurveTo(
-      x0 + reach * 0.3, H / 2 + H * 0.1,
-      x0 + reach * 0.7, H * 0.82,
-      x0 + reach, H * 0.95,
-    );
+    ctx.moveTo(baseX, baseY);
+    // 主脉略带弧度,中段往叶缘方向偏一点
+    const midX = (baseX + v.x) / 2;
+    const midY = (baseY + v.y) / 2 + (v.y - baseY) * 0.15;
+    ctx.quadraticCurveTo(midX, midY, v.x, v.y);
     ctx.stroke();
   }
 
-  // 三级网状细脉
-  ctx.lineWidth = 0.55;
-  ctx.strokeStyle = "rgba(60,60,60,0.18)";
-  for (let i = 0; i < 240; i++) {
-    const x = Math.random() * W;
+  // 二级脉:从主脉散出短斜分支
+  ctx.lineWidth = 1.0;
+  ctx.strokeStyle = "rgba(60,75,30,0.32)";
+  for (const v of veinTargets) {
+    const segs = 6;
+    for (let s = 1; s < segs; s++) {
+      const t = s / segs;
+      // 沿主脉曲线取点(线性近似,够用)
+      const px = baseX + (v.x - baseX) * t;
+      const py = baseY + (v.y - baseY) * t;
+      // 法线方向(向叶缘一侧)
+      const dx = v.x - baseX;
+      const dy = v.y - baseY;
+      const len = Math.hypot(dx, dy);
+      const nx = -dy / len;
+      const ny = dx / len;
+      // 朝向叶缘的二级脉(往主脉外侧延伸,长度递减)
+      const branchLen = 8 + 14 * (1 - t);
+      // 决定哪一侧是"外侧"(远离中线的一侧)
+      const outwardSign = v.y < baseY ? -1 : v.y > baseY ? 1 : 0;
+      if (outwardSign !== 0) {
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(
+          px + nx * branchLen * outwardSign * 0.6,
+          py + ny * branchLen * outwardSign * 0.6,
+        );
+        ctx.stroke();
+      }
+    }
+  }
+
+  // 三级网状脉(随机短线 + 偏向放射方向)
+  ctx.lineWidth = 0.5;
+  ctx.strokeStyle = "rgba(60,75,30,0.18)";
+  for (let i = 0; i < 320; i++) {
+    const x = baseX + Math.random() * (W - baseX);
     const y = Math.random() * H;
-    const len = 4 + Math.random() * 12;
-    const ang =
-      (Math.random() - 0.5) * Math.PI * 0.4 +
-      (y < H / 2 ? -Math.PI / 4 : Math.PI / 4);
+    const len = 3 + Math.random() * 9;
+    // 偏向"基部→当前点"的放射方向
+    const radDx = x - baseX;
+    const radDy = y - baseY;
+    const radLen = Math.hypot(radDx, radDy);
+    const radAng = Math.atan2(radDy, radDx);
+    const ang = radAng + (Math.random() - 0.5) * Math.PI * 0.5;
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len);
     ctx.stroke();
+    // 用 radLen 防 lint
+    void radLen;
   }
 
   // 边缘暗化
