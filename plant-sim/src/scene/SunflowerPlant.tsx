@@ -57,10 +57,6 @@ function deriveVisualState(spec: SpeciesSpec, gdd: number) {
   // 茎颜色:嫩→成熟→木质化干枯
   const stemColor = pickStemColor(spec, gdd);
 
-  // 叶子总数随营养生长出现
-  const leafCount = Math.round(
-    m.maxLeafCount * smoothStep01(stemT) * 1.05, // 略多于茎,在末期会逐步脱落
-  );
   const leafSlots: LeafSlot[] = [];
   // 真实向日葵叶序:前 4 节为"对生 + decussate(每节相邻 90°)",第 5 节起转为黄金角螺旋。
   // 假设 maxLeafCount 中前 8 片(4 对)走对生,余下走螺旋。
@@ -112,8 +108,10 @@ function deriveVisualState(spec: SpeciesSpec, gdd: number) {
       });
       continue;
     }
-    // 单叶生长:0.25 进度内长到最大
-    const grow = clamp01((ageT + 0.05) / 0.25);
+    // 单叶生长:S 形曲线(慢启动 → 中段加速 → 慢收尾),0.35 进度内长到最大。
+    // 真实叶片就是这种 sigmoid 曲线,且与"批量出现"解耦——可见性完全由 grow 决定。
+    const linearT = clamp01((ageT + 0.05) / 0.35);
+    const grow = smoothStep01(linearT);
     // 位置梯度:下部叶最大、上部叶最小(真实向日葵的形态分布)
     // birthT 0(最早出生,在底部)→ 1(最晚,在顶部)
     const positionSizeFactor = 1.35 - 0.7 * birthT;
@@ -148,7 +146,7 @@ function deriveVisualState(spec: SpeciesSpec, gdd: number) {
     leafSlots.push({
       yFrac,
       azimuth,
-      length: i < leafCount ? length : 0,
+      length, // 可见性由 grow 自然决定;Leaves.tsx 对 length<0.001 的叶子隐藏
       pitch: deg2rad(m.leafPitch) + jitterPitch,
       color,
       attached,
