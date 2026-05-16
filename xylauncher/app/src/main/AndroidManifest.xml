@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- 网络（DashCam 上传、天气、云配置都需要） -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- 应用列表（Launcher 必需，Android 11+ 强要求） -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
+
+    <!-- 开机自启（将来 HudOverlay 自启用） -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- HUD 悬浮窗 -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- DashCam 视频文件读取 -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+
+    <!-- 通知监听（媒体卡片读 MediaSession 用，BIND 权限在 service 标签里声明） -->
+
+    <!-- ECARX 车控（实际授权由车机白名单决定，普通装上拿不到这两个） -->
+    <uses-permission android:name="android.car.permission.CAR_INFO" tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.car.permission.CAR_VENDOR_EXTENSION" tools:ignore="ProtectedPermissions" />
+
+    <application
+        android:name=".App"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.XYLauncher"
+        tools:targetApi="33">
+
+        <!-- 银河 OS 私有 meta-data: 防止系统强制停止本 App
+             这个标签是逆向小八时发现的「潜规则」 -->
+        <meta-data
+            android:name="com.geely.recent.prop.force_stop"
+            android:value="false" />
+
+        <!-- HudOverlayService 是普通 Service（不调用 startForeground），不需要 FGS 声明 -->
+        <service
+            android:name=".hud.HudOverlayService"
+            android:exported="false" />
+
+        <!-- 浮动 Dock Service -->
+        <service
+            android:name=".floatdock.FloatingDockService"
+            android:exported="false" />
+
+        <service
+            android:name=".media.MediaNotificationListener"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:stateNotNeeded="true"
+            android:resumeWhilePausing="true"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboard|keyboardHidden|uiMode|density|fontScale"
+            android:theme="@style/Theme.XYLauncher.Launcher">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>

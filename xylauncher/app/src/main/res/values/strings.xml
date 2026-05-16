@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">星越桌面</string>
+    <string name="app_name_en">XYLauncher</string>
+
+    <string name="card_clock_title">时间</string>
+    <string name="card_vehicle_title">车辆状态</string>
+    <string name="card_apps_title">应用</string>
+
+    <string name="vehicle_speed">车速</string>
+    <string name="vehicle_rpm">转速</string>
+    <string name="vehicle_gear">档位</string>
+    <string name="vehicle_fuel">油量</string>
+    <string name="vehicle_battery">电量</string>
+    <string name="vehicle_outer_temp">车外温度</string>
+    <string name="vehicle_unit_kmh">km/h</string>
+    <string name="vehicle_unit_rpm">rpm</string>
+    <string name="vehicle_unit_celsius">℃</string>
+
+    <string name="provider_mock">模拟数据</string>
+    <string name="provider_ecarx">ECARX</string>
+    <string name="provider_unavailable">车控数据暂不可用</string>
+</resources>

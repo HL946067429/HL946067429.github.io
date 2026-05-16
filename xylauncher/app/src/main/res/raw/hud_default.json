@@ -1,0 +1,114 @@
+{
+  "version": 2,
+  "autoStartHud": true,
+  "gearAutoHideOnSpeed": false,
+  "gearHideSpeedKmh": 30,
+  "snowMode": true,
+  "snowModeType": 1,
+  "elements": [
+    {"id": "lane_info", "name": "车道信息", "type": "CUSTOM_VIEW", "dataSource": "lane_info",
+     "x": 0.3564, "y": 0, "width": 0.4417, "height": 0.2173,
+     "horizontalAlignment": "CENTER", "verticalAlignment": "CENTER",
+     "textSize": 70, "textColor": -1, "alpha": 1, "visible": true},
+
+    {"id": "navigation_text", "name": "导航文本", "type": "TEXT", "dataSource": "navigation_text",
+     "x": 0, "y": 0, "width": 0.2875, "height": 0.1821,
+     "horizontalAlignment": "CENTER", "verticalAlignment": "CENTER",
+     "textSize": 24, "textColor": -1, "alpha": 1, "visible": true},
+
+    {"id": "navigation_icon", "name": "导航图标", "type": "ICON", "dataSource": "navigation_icon",
+     "x": 0.3704, "y": 0.3047, "width": 0.0667, "height": 0.2556,
+     "horizontalAlignment": "CENTER", "verticalAlignment": "CENTER",
+     "textSize": 155, "textColor": -1, "iconScale": 1, "alpha": 1, "visible": true},
+
+    {"id": "speed", "name": "车速", "type": "TEXT", "dataSource": "speed",
+     "x": 0.4495, "y": 0.168, "width": 0.1333, "height": 0.5335,
+     "horizontalAlignment": "CENTER", "verticalAlignment": "CENTER",
+     "textSize": 72, "textColor": -1, "textBold": false, "alpha": 1, "visible": true},
+
+    {"id": "speed_unit", "name": "车速单位", "type": "TEXT", "dataSource": "speed_unit",
+     "x": 0.481, "y": 0.6117, "width": 0.0758, "height": 0.1502,
+     "horizontalAlignment": "CENTER", "verticalAlignment": "CENTER",
+     "textSize": 20, "textColor": -1, "alpha": 1, "visible": true},
+
+    {"id": "gear", "name": "档位", "type": "TEXT", "dataSource": "gear",
+     "x": 0.6054, "y": 0.2732, "width": 0.0517, "height": 0.3546,
+     "horizontalAlignment": "CENTER", "verticalAlignment": "CENTER",
+     "textSize": 48, "textColor": -1, "alpha": 1, "visible": true},
+
+    {"id": "traffic_light", "name": "导航红绿灯", "type": "CUSTOM_VIEW", "dataSource": "traffic_light",
+     "x": 0.8229, "y": 0.024, "width": 0.1067, "height": 0.1981,
+     "horizontalAlignment": "CENTER", "verticalAlignment": "CENTER",
+     "textSize": 24, "textColor": -1, "alpha": 1, "visible": true},
+
+    {"id": "cruise_traffic_light", "name": "巡航红绿灯", "type": "CUSTOM_VIEW", "dataSource": "cruise_traffic_light",
+     "x": 0.6733, "y": 0.2701, "width": 0.3267, "height": 0.1981,
+     "horizontalAlignment": "CENTER", "verticalAlignment": "CENTER",
+     "textSize": 24, "textColor": -1, "alpha": 1, "visible": true},
+
+    {"id": "turn_signal_left", "name": "左转向灯", "type": "ICON", "dataSource": "turn_signal_left",
+     "x": 0.2182, "y": 0.5536, "width": 0.0675, "height": 0.1941,
+     "horizontalAlignment": "CENTER", "verticalAlignment": "CENTER",
+     "textSize": 48, "textColor": -22016, "iconScale": 2.45, "alpha": 1, "visible": true},
+
+    {"id": "turn_signal_right", "name": "右转向灯", "type": "ICON", "dataSource": "turn_signal_right",
+     "x": 0.2984, "y": 0.5423, "width": 0.0733, "height": 0.2109,
+     "horizontalAlignment": "CENTER", "verticalAlignment": "CENTER",
+     "textSize": 48, "textColor": -22016, "iconScale": 2.675, "alpha": 1, "visible": true},
+
+    {"id": "lyrics", "name": "歌词", "type": "TEXT", "dataSource": "lyrics",
+     "x": 0, "y": 0.1262, "width": 0.36, "height": 0.4537,
+     "horizontalAlignment": "CENTER", "verticalAlignment": "CENTER",
+     "textSize": 24, "textColor": -1, "alpha": 1, "visible": true},
+
+    {"id": "text_example", "name": "文本元素", "type": "TEXT", "dataSource": "",
+     "x": 0, "y": 0.5469, "width": 0.16, "height": 0.1821,
+     "horizontalAlignment": "CENTER", "verticalAlignment": "CENTER",
+     "text": "示例", "textSize": 24, "textColor": -1, "alpha": 1, "visible": true},
+
+    {"id": "music_title_artist", "name": "歌名-歌手", "type": "TEXT", "dataSource": "music_title_artist",
+     "x": 0, "y": 0.6046, "width": 0.2475, "height": 0.1821,
+     "horizontalAlignment": "LEFT", "verticalAlignment": "CENTER",
+     "textSize": 22, "textColor": -1, "alpha": 1, "visible": true},
+
+    {"id": "music_cover", "name": "音乐封面", "type": "IMAGE", "dataSource": "music_cover",
+     "x": 0.7254, "y": 0.5372, "width": 0.0742, "height": 0.2843,
+     "horizontalAlignment": "CENTER", "verticalAlignment": "CENTER",
+     "textSize": 16, "textColor": -1, "iconScale": 2.34, "alpha": 1, "visible": true},
+
+    {"id": "time", "name": "时间", "type": "TEXT", "dataSource": "time",
+     "x": 0.5891, "y": 0.6077, "width": 0.1, "height": 0.1821,
+     "horizontalAlignment": "CENTER", "verticalAlignment": "CENTER",
+     "textSize": 24, "textColor": -1, "alpha": 1, "visible": true},
+
+    {"id": "outer_temp", "name": "车外温度", "type": "TEXT", "dataSource": "outer_temp",
+     "x": 0.825, "y": 0.5911, "width": 0.0858, "height": 0.1821,
+     "horizontalAlignment": "CENTER", "verticalAlignment": "CENTER",
+     "textSize": 24, "textColor": -1, "alpha": 1, "visible": true},
+
+    {"id": "fuel", "name": "剩余油量", "type": "TEXT", "dataSource": "fuel",
+     "x": 0, "y": 0.756, "width": 0.1317, "height": 0.1821,
+     "horizontalAlignment": "LEFT", "verticalAlignment": "CENTER",
+     "textSize": 24, "textColor": -1, "alpha": 1, "visible": true},
+
+    {"id": "battery", "name": "剩余电量", "type": "TEXT", "dataSource": "battery",
+     "x": 0.1434, "y": 0.7655, "width": 0.1317, "height": 0.1821,
+     "horizontalAlignment": "LEFT", "verticalAlignment": "CENTER",
+     "textSize": 24, "textColor": -1, "alpha": 1, "visible": true},
+
+    {"id": "motor_speed_front", "name": "前电机转速", "type": "TEXT", "dataSource": "motor_speed_front",
+     "x": 0.31, "y": 0.8179, "width": 0.2108, "height": 0.1821,
+     "horizontalAlignment": "CENTER", "verticalAlignment": "CENTER",
+     "textSize": 24, "textColor": -1, "alpha": 1, "visible": true},
+
+    {"id": "motor_speed_rear", "name": "后电机转速", "type": "TEXT", "dataSource": "motor_speed_rear",
+     "x": 0.5337, "y": 0.8179, "width": 0.2108, "height": 0.1821,
+     "horizontalAlignment": "CENTER", "verticalAlignment": "CENTER",
+     "textSize": 24, "textColor": -1, "alpha": 1, "visible": true},
+
+    {"id": "rpm", "name": "转速", "type": "TEXT", "dataSource": "rpm",
+     "x": 0.7746, "y": 0.8179, "width": 0.1608, "height": 0.1821,
+     "horizontalAlignment": "CENTER", "verticalAlignment": "CENTER",
+     "textSize": 24, "textColor": -1, "alpha": 1, "visible": true}
+  ]
+}

@@ -1,0 +1,26 @@
+# Gradle
+.gradle/
+build/
+local.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+captures/
+
+# Android
+.cxx/
+*.apk
+*.aab
+
+# 例外：release/ 目录的 APK 是公布给实测用的
+!release/*.apk
+
+# 签名 —— 这两个绝不能进公开仓库
+keystore.properties
+xyl-release.keystore
+
+# OS
+.DS_Store
+Thumbs.db
